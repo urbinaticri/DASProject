@@ -171,7 +171,7 @@ d = int(n_samples/NN)*28*28	# Number of neurons in each layer. Same numbers for
 max_iters = 10 # epochs
 stepsize = 0.1 # learning rate
 
-J = np.zeros(NN, MAXITERS) # Cost
+J = np.zeros((NN, MAXITERS)) # Cost
 
 
 # Initial Weights / Initial Input Trajectory

@@ -4,11 +4,10 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 from keras.datasets import mnist
-import tensorflow as tf
 
 ###############################################################################
 # Useful constants
-MAXITERS = int(1e4) # Explicit Casting
+MAXITERS = 20 +1  # Explicit Casting
 NN = 10
 
 ###############################################################################
@@ -76,7 +75,7 @@ def forward_pass(uu,x0):
 				xx state trajectory: x[1],x[2],..., x[T]
 	"""
 	xx = np.zeros((T, d))
-	xx[0] = x0.reshape(-1)
+	xx[0] = x0
 
 	for t in range(T-1):
 		xx[t+1] = inference_dynamics(xx[t],uu[t]) # x^+ = f(x,u)
@@ -143,19 +142,18 @@ def backward_pass(xx,uu,llambdaT):
 # stepsize = 1e-3 # Constant Stepsize
 
 chosen_class = 4
-n_samples = 30
+n_samples = 100
 
 (train_D, train_y), (test_D, test_y) = mnist.load_data()
 train_D , test_D = train_D/255.0 , test_D/255.0
 train_D = train_D.reshape((60000, 28 * 28))
 
-train_y = [1 if y == chosen_class else -1 for y in train_y]
-test_y = [1 if y == chosen_class else -1 for y in test_y]
+train_y = [1 if y == chosen_class else 0 for y in train_y]
+test_y = [1 if y == chosen_class else 0 for y in test_y]
 
-train_D, train_y  = train_D[:n_samples], train_y[:n_samples]
 idx  = np.argsort(np.random.random(n_samples))
-train_D = [train_D[i] for i in idx]
-train_y = [train_y[i] for i in idx]
+train_D = [train_D[i] for i in idx][:n_samples]
+train_y = [train_y[i] for i in idx][:n_samples]
 
 # Training Set
 #label_point = train_y[:NN]
@@ -164,7 +162,7 @@ n = int(n_samples/NN) #10/10 = 2
 label_point = np.array([ train_y[n*i: n*i+n] for i in range(NN) ])
 data_point  = np.array([ train_D[n*i: n*i+n] for i in range(NN) ])
 
-T = 3	# Layers
+T = 2	# Layers
 d = 28*28	# Number of neurons in each layer. Same numbers for all the layers
 
 # Gradient Method Parameters
@@ -179,17 +177,14 @@ J = np.zeros((NN, MAXITERS)) # Cost
 XX = np.random.randn(NN, T-1, d, d+1)
 XXtp = np.zeros_like(XX)
 
-for tt in range (MAXITERS-1):
-
-
+for tt in range (MAXITERS):
 	if (tt % 1) == 0:
 		print("Iteration {:3d}".format(tt), end="\n")
 	
-
 	for ii in range(NN):
-
 		Nii = np.nonzero(Adj[ii])[0]
 
+		llambdaT = 0
 		for kk in range(n):
 			image = data_point[ii][kk]
 			label = label_point[ii][kk]
@@ -198,21 +193,28 @@ for tt in range (MAXITERS-1):
 			xx = forward_pass(XX[ii], image) # T x d
 
 			# Backward propagation
-			llambdaT = tf.nn.softmax(xx[-1,:]) - label # xT
-			print(llambdaT)
+			llambdaT += xx[-1,:] - label # in multi-sample case we need the sum of cost functions
 			Delta_u = backward_pass(xx, XX[ii], llambdaT) # the gradient of the loss function
 
 			# Update the weights
 			XXtp[ii] = WW[ii,ii]*XX[ii] - stepsize*Delta_u # overwriting the old value
-			#XXtp[ii] = WW[ii,ii]*XX[ii] - stepsize*Delta_u/(tt+1)*10 #diminishing
+			#XXtp[ii] = WW[ii,ii]*XX[ii] - 1/(tt+1)*Delta_u #diminishing
 		
 		
 		for jj in Nii:
 			XXtp[ii] += WW[ii,jj]*XX[jj]
 
 		# Store the Loss Value across Iterations
-		J[ii, tt] = llambdaT
+		J[ii, tt] = llambdaT[0]/n # in theory only sum... remove n
 		#BCE = label_point[ii] * log(xx[-1,:]) + (1 - label_point[ii]) * (1 - log(xx[-1,:]))
 		#J[ii, tt] = BCE
 
 	XX = XXtp
+
+plt.figure()
+plt.semilogy(np.arange(MAXITERS), J[0,:], linestyle='-', linewidth=2)
+plt.xlabel(r"iterations $t$")
+plt.ylabel(r"$\sum_{i=1}^\mathcal{I} J(\phi(u;x_i^t);y_i)$")
+plt.title("Evolution of the cost error")
+plt.grid()
+plt.show()

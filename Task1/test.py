@@ -76,9 +76,9 @@ def forward_pass(uu,x0):
 				xx state trajectory: x[1],x[2],..., x[T]
 	"""
 	xx = np.zeros((T,d))
-	xx[0] = x0
+	xx[0] = x0.reshape(-1)
 
-	for t	in range(T-1):
+	for t in range(T-1):
 		xx[t+1] = inference_dynamics(xx[t],uu[t]) # x^+ = f(x,u)
 
 	return xx
@@ -143,7 +143,7 @@ def backward_pass(xx,uu,llambdaT):
 # stepsize = 1e-3 # Constant Stepsize
 
 chosen_class = 4
-n_samples = 100
+n_samples = 20
 
 (train_D, train_y), (test_D, test_y) = mnist.load_data()
 train_D , test_D = train_D/255.0 , test_D/255.0
@@ -160,12 +160,12 @@ train_y = [train_y[i] for i in idx]
 # Training Set
 #label_point = train_y[:NN]
 #data_point = train_D[:NN]
-label_point = [ train_y[NN*i: NN*i+NN] for i in range(int(n_samples/NN)) ]
-data_point  = [ train_D[NN*i: NN*i+NN] for i in range(int(n_samples/NN)) ]
-
+n = int(n_samples/NN) #10/10 = 2
+label_point = np.array([ train_y[n*i: n*i+n] for i in range(NN) ])
+data_point  = np.array([ train_D[n*i: n*i+n] for i in range(NN) ])
 
 T = 3	# Layers
-d = int(n_samples/NN)*28*28	# Number of neurons in each layer. Same numbers for all the layers
+d = n*28*28	# Number of neurons in each layer. Same numbers for all the layers
 
 # Gradient Method Parameters
 max_iters = 10 # epochs
@@ -182,20 +182,21 @@ XXtp = np.zeros_like(XX)
 for tt in range (MAXITERS-1):
 
 
-	if (tt % 10) == 0:
+	if (tt % 1) == 0:
 		print("Iteration {:3d}".format(tt), end="\n")
 	
 
-	for ii in range (NN):
+	for ii in range(NN):
 
 		Nii = np.nonzero(Adj[ii])[0]
 
 		# Initial State Trajectory
-		xx = forward_pass(data_point[ii],XX[ii]) # T x d
+		xx = forward_pass(XX[ii], data_point[ii]) # T x d
 
 		# Backward propagation
-		llambdaT = 2*( xx[-1,:] - label_point[ii]) # xT
-		Delta_u = backward_pass(xx,XX[ii],llambdaT) # the gradient of the loss function
+		y_pred = xx[-1,:]@np.ones(d)
+		llambdaT = 2*(y_pred - label_point[ii]) # xT
+		Delta_u = backward_pass(xx, XX[ii], llambdaT) # the gradient of the loss function
 
 		# Update the weights
 		XXtp[ii] = WW[ii,ii]*XX[ii] - stepsize*Delta_u # overwriting the old value
@@ -204,7 +205,7 @@ for tt in range (MAXITERS-1):
 			XXtp[ii] += WW[ii,jj]*XX[jj]
 
 		# Store the Loss Value across Iterations
-		J[ii, tt] = llambdaT
+		J[ii, tt] = np.array(llambdaT)
 		#BCE = label_point[ii] * log(xx[-1,:]) + (1 - label_point[ii]) * (1 - log(xx[-1,:]))
 		#J[ii, tt] = BCE
 

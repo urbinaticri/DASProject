@@ -4,6 +4,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 from keras.datasets import mnist
+import tensorflow as tf
 
 ###############################################################################
 # Useful constants
@@ -60,8 +61,7 @@ def inference_dynamics(xt,ut):
 	xtp = np.zeros(d)
 	for ell in range(d):
 		temp = xt@ut[ell,1:] + ut[ell,0] # including the bias
-
-	xtp[ell] = sigmoid_fn( temp ) # x' * u_ell
+		xtp[ell] = sigmoid_fn( temp ) # x' * u_ell
 	
 	return xtp
 
@@ -75,7 +75,7 @@ def forward_pass(uu,x0):
 	output: 
 				xx state trajectory: x[1],x[2],..., x[T]
 	"""
-	xx = np.zeros((T,d))
+	xx = np.zeros((T, d))
 	xx[0] = x0.reshape(-1)
 
 	for t in range(T-1):
@@ -143,14 +143,14 @@ def backward_pass(xx,uu,llambdaT):
 # stepsize = 1e-3 # Constant Stepsize
 
 chosen_class = 4
-n_samples = 20
+n_samples = 30
 
 (train_D, train_y), (test_D, test_y) = mnist.load_data()
 train_D , test_D = train_D/255.0 , test_D/255.0
 train_D = train_D.reshape((60000, 28 * 28))
 
-train_y = [1 if y == chosen_class else 0 for y in train_y]
-test_y = [1 if y == chosen_class else 0 for y in test_y]
+train_y = [1 if y == chosen_class else -1 for y in train_y]
+test_y = [1 if y == chosen_class else -1 for y in test_y]
 
 train_D, train_y  = train_D[:n_samples], train_y[:n_samples]
 idx  = np.argsort(np.random.random(n_samples))
@@ -165,7 +165,7 @@ label_point = np.array([ train_y[n*i: n*i+n] for i in range(NN) ])
 data_point  = np.array([ train_D[n*i: n*i+n] for i in range(NN) ])
 
 T = 3	# Layers
-d = n*28*28	# Number of neurons in each layer. Same numbers for all the layers
+d = 28*28	# Number of neurons in each layer. Same numbers for all the layers
 
 # Gradient Method Parameters
 max_iters = 10 # epochs
@@ -190,22 +190,28 @@ for tt in range (MAXITERS-1):
 
 		Nii = np.nonzero(Adj[ii])[0]
 
-		# Initial State Trajectory
-		xx = forward_pass(XX[ii], data_point[ii]) # T x d
+		for kk in range(n):
+			image = data_point[ii][kk]
+			label = label_point[ii][kk]
 
-		# Backward propagation
-		y_pred = xx[-1,:]@np.ones(d)
-		llambdaT = 2*(y_pred - label_point[ii]) # xT
-		Delta_u = backward_pass(xx, XX[ii], llambdaT) # the gradient of the loss function
+			# Initial State Trajectory
+			xx = forward_pass(XX[ii], image) # T x d
 
-		# Update the weights
-		XXtp[ii] = WW[ii,ii]*XX[ii] - stepsize*Delta_u # overwriting the old value
-		#XXtp[ii] = WW[ii,ii]*XX[ii] - stepsize*Delta_u/(tt+1)*10 #diminishing
+			# Backward propagation
+			llambdaT = tf.nn.softmax(xx[-1,:]) - label # xT
+			print(llambdaT)
+			Delta_u = backward_pass(xx, XX[ii], llambdaT) # the gradient of the loss function
+
+			# Update the weights
+			XXtp[ii] = WW[ii,ii]*XX[ii] - stepsize*Delta_u # overwriting the old value
+			#XXtp[ii] = WW[ii,ii]*XX[ii] - stepsize*Delta_u/(tt+1)*10 #diminishing
+		
+		
 		for jj in Nii:
 			XXtp[ii] += WW[ii,jj]*XX[jj]
 
 		# Store the Loss Value across Iterations
-		J[ii, tt] = np.array(llambdaT)
+		J[ii, tt] = llambdaT
 		#BCE = label_point[ii] * log(xx[-1,:]) + (1 - label_point[ii]) * (1 - log(xx[-1,:]))
 		#J[ii, tt] = BCE
 

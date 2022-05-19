@@ -176,36 +176,36 @@ J = np.zeros((NN, MAXITERS)) # Cost
 
 # Initial Weights / Initial Input Trajectory
 #uu = np.random.randn(T-1, d, d+1)
-UU = np.random.randn(NN, T-1, d, d+1)
+XX = np.random.randn(NN, T-1, d, d+1)
+XXtp = np.zeros_like(XX)
+
+for tt in range (MAXITERS-1):
 
 
-for kk in range (MAXITERS-1):
-	stepsize = 1/(kk+1) # Diminishing Stepsize
-
-	if (kk % 10) == 0:
-		print("Iteration {:3d}".format(kk), end="\n")
+	if (tt % 10) == 0:
+		print("Iteration {:3d}".format(tt), end="\n")
 	
-	VV = np.zeros_like(UU)
 
 	for ii in range (NN):
-		Nii = np.nonzero(Adj[ii])[0]		
-		for jj in Nii:
-			VV[ii] += WW[ii,jj]*UU[jj]
-		VV[ii] += WW[ii,ii]*UU[ii]
+
+		Nii = np.nonzero(Adj[ii])[0]
 
 		# Initial State Trajectory
-		xx = forward_pass(VV[ii], data_point[ii]) # T x d
+		xx = forward_pass(data_point[ii],XX[ii]) # T x d
 
 		# Backward propagation
 		llambdaT = 2*( xx[-1,:] - label_point[ii]) # xT
-		Delta_u = backward_pass(xx,VV[ii],llambdaT) # the gradient of the loss function 
-		
-		# Update the weights
-		VV[ii] = VV[ii] - stepsize*Delta_u # overwriting the old value
+		Delta_u = backward_pass(xx,XX[ii],llambdaT) # the gradient of the loss function
 
+		# Update the weights
+		XXtp[ii] = WW[ii,ii]*XX[ii] - stepsize*Delta_u # overwriting the old value
+		#XXtp[ii] = WW[ii,ii]*XX[ii] - stepsize*Delta_u/(tt+1)*10 #diminishing
+		for jj in Nii:
+			XXtp[ii] += WW[ii,jj]*XX[jj]
 
 		# Store the Loss Value across Iterations
-		BCE = label_point[ii] * log(xx[-1,:]) + (1 - label_point[ii]) * (1 - log(xx[-1,:]))
-		J[ii, kk] = BCE
+		J[ii, tt] = llambdaT
+		#BCE = label_point[ii] * log(xx[-1,:]) + (1 - label_point[ii]) * (1 - log(xx[-1,:]))
+		#J[ii, tt] = BCE
 
-	UU = VV
+	XX = XXtp

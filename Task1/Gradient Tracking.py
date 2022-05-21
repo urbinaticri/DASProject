@@ -131,7 +131,7 @@ def backward_pass(xx,uu,llambdaT):
 
   Delta_u = np.zeros((T-1,d,d+1))
 
-  for t in reversed(range(T-1)): # T-2,T-1,...,1,0
+  for t in reversed(range(T-1)): # T-1,T-2,...,1,0
     llambda[t], Delta_u[t] = adjoint_dynamics(llambda[t+1],xx[t],uu[t])
 
   return Delta_u
@@ -139,7 +139,6 @@ def backward_pass(xx,uu,llambdaT):
 
 ###############################################################################
 # GO!
-# stepsize = 1e-3 # Constant Stepsize
 
 chosen_class = 4
 n_samples = 100
@@ -155,27 +154,40 @@ idx  = np.argsort(np.random.random(n_samples))
 train_D = [train_D[i] for i in idx][:n_samples]
 train_y = [train_y[i] for i in idx][:n_samples]
 
-# Training Set
-#label_point = train_y[:NN]
-#data_point = train_D[:NN]
-n = int(n_samples/NN) #10/10 = 2
+n = int(n_samples/NN) # Number of samples per node
 label_point = np.array([ train_y[n*i: n*i+n] for i in range(NN) ])
 data_point  = np.array([ train_D[n*i: n*i+n] for i in range(NN) ])
 
 T = 2	# Layers
 d = 28*28	# Number of neurons in each layer. Same numbers for all the layers
 
-# Gradient Method Parameters
-max_iters = 10 # epochs
 stepsize = 0.1 # learning rate
+J = np.zeros((MAXITERS)) # Cost
 
-J = np.zeros((NN, MAXITERS)) # Cost
+UU = np.random.randn(NN, T-1, d, d+1)	# U_t :Initial Weights / Initial Input Trajectory 
+UUp = np.zeros_like(UU)					# U_{t+1}
+VV = np.zeros_like(UU)
+
+YY = np.random.randn(NN, T-1, d, d+1)	# y_t
+YYp = np.zeros_like(YY)					# t_{t+1}
 
 
-# Initial Weights / Initial Input Trajectory
-#uu = np.random.randn(T-1, d, d+1)
-XX = np.random.randn(NN, T-1, d, d+1)
-XXtp = np.zeros_like(XX)
+for ii in range (NN):
+	Nii = np.nonzero(Adj[ii])[0]
+	for kk in range(n):
+		image = data_point[ii][kk]
+		label = label_point[ii][kk]
+
+		VV[ii] = WW[ii,ii]*UU[ii]
+		for jj in Nii:
+			VV[ii] += WW[ii,jj]*UU[jj]
+
+		# Initial State Trajectory
+		XX = forward_pass(VV[ii], image)
+		# Backward propagation
+		llambdaT = 2*(XX[-1,:] - label)
+		YY[ii] = backward_pass(XX, VV[ii], llambdaT) #y_i,0
+UU = VV
 
 for tt in range (MAXITERS):
 	if (tt % 1) == 0:
@@ -184,37 +196,49 @@ for tt in range (MAXITERS):
 	for ii in range(NN):
 		Nii = np.nonzero(Adj[ii])[0]
 
-		llambdaT = 0
+		totalCost = 0 # Sum up the cost of each image
 		for kk in range(n):
 			image = data_point[ii][kk]
 			label = label_point[ii][kk]
 
-			# Initial State Trajectory
-			xx = forward_pass(XX[ii], image) # T x d
+			VV[ii] = WW[ii,ii]*UU[ii]
+			for jj in Nii:
+				VV[ii] += WW[ii,jj]*UU[jj]
+			# Weights update
+			UUp[ii] = VV[ii] - stepsize*YY[ii]
 
+			# Forward pass
+			XX = forward_pass(UU[ii], image)	#f_i(x_i,t)
+			# Cost function
+			MSE_d = 2*(XX[-1,:] - label)
+			llambdaT = MSE_d
+			totalCost += (XX[-1,:] - label)[0]**2	# Pick one random neuron because all are the same
 			# Backward propagation
-			llambdaT += xx[-1,:] - label # in multi-sample case we need the sum of cost functions
-			Delta_u = backward_pass(xx, XX[ii], llambdaT) # the gradient of the loss function
+			Delta_u = backward_pass(XX, UU[ii], llambdaT) #\nabla f_i(x_{i,t})
+			
+			# Forward pass
+			XXp = forward_pass(UU[ii], image)	#f_i(x_i,t)
+			# Cost function
+			MSE_d = 2*(XXp[-1,:] - label)
+			llambdaTtp = MSE_d
+			# Backward propagation
+			Delta_utp = backward_pass(XXp, UUp[ii], llambdaTtp) #\nabla f_i(x_{i,t+1})
 
-			# Update the weights
-			XXtp[ii] = WW[ii,ii]*XX[ii] - stepsize*Delta_u # overwriting the old value
-			#XXtp[ii] = WW[ii,ii]*XX[ii] - 1/(tt+1)*Delta_u #diminishing
-		
-		
-		for jj in Nii:
-			XXtp[ii] += WW[ii,jj]*XX[jj]
+			YYp[ii] = WW[ii,ii]*YY[ii] + (Delta_utp - Delta_u)
+			for jj in Nii:
+				YYp[ii] += WW[ii,jj]*YY[jj]
 
-		# Store the Loss Value across Iterations
-		J[ii, tt] = llambdaT[0]/n # in theory only sum... remove n
-		#BCE = label_point[ii] * log(xx[-1,:]) + (1 - label_point[ii]) * (1 - log(xx[-1,:]))
-		#J[ii, tt] = BCE
+		# Store the Loss Value across Iterations (the sum of costs of all nodes)
+		J[tt] += totalCost
 
-	XX = XXtp
+	# Update the current step
+	UU = UUp
+	YY = YYp
 
 plt.figure()
-plt.semilogy(np.arange(MAXITERS), J[0,:], linestyle='-', linewidth=2)
+plt.semilogy(np.arange(MAXITERS), J, linestyle='-', linewidth=2)
 plt.xlabel(r"iterations $t$")
-plt.ylabel(r"$\sum_{i=1}^\mathcal{I} J(\phi(u;x_i^t);y_i)$")
-plt.title("Evolution of the cost error")
+plt.ylabel(r"cost")
+plt.title(r"Evolution of the cost error: $\min \sum_{i=1}^N \sum_{k=1}^\mathcal{I} J(\phi(u;x_i^k);y_i^k)$")
 plt.grid()
 plt.show()

@@ -169,7 +169,7 @@ UUp = np.zeros_like(UU)					# U_{t+1}
 VV = np.zeros_like(UU)
 
 YY = np.random.randn(NN, T-1, d, d+1)	# y_t
-YYp = np.zeros_like(YY)					# t_{t+1}
+YYp = np.zeros_like(YY)					# y_{t+1}
 
 
 for ii in range (NN):

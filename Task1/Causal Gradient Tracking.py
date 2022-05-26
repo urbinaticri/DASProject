@@ -157,8 +157,8 @@ train_D = train_D.reshape((train_D.shape[0], 28 * 28))
 test_D = test_D.reshape((test_D.shape[0], 28 * 28))
 
 
-train_y = [1 if y == chosen_class else 0 for y in train_y]
-test_y = [1 if y == chosen_class else 0 for y in test_y]
+train_y = [1 if y > chosen_class else 0 for y in train_y]
+test_y = [1 if y > chosen_class else 0 for y in test_y]
 
 
 idx  = np.argsort(np.random.random(n_samples))
@@ -175,7 +175,7 @@ print(label_point)
 T = 3	# Layers
 d = 28*28	# Number of neurons in each layer. Same numbers for all the layers
 
-stepsize = 1e-3 # learning rate
+stepsize = 1e-4 # learning rate
 J = np.zeros((MAXITERS)) # Cost
 
 UU = np.random.randn(NN, T-1, d, d+1)	# U_t : U_0 Initial Weights / Initial Input Trajectory initializer randomly 
@@ -213,13 +213,13 @@ for tt in range (MAXITERS): # For each iteration
 		Nii = np.nonzero(Adj[ii])[0]
 
 		# Weights update
-		VV[ii] = 0 #WW[ii,ii]*UU[ii]
+		VV[ii] = WW[ii,ii]*UU[ii]
 		for jj in Nii:
 			VV[ii] += WW[ii,jj]*UU[jj]
 		UUp[ii] = VV[ii] + ZZ[ii] - stepsize*Delta_u[ii]
 
 		# ZZ update
-		ZZp[ii] = WW[ii,ii]*ZZ[ii] +  stepsize*Delta_u[ii]
+		ZZp[ii] = WW[ii,ii]*ZZ[ii] + stepsize*Delta_u[ii]
 		for jj in Nii:
 			ZZp[ii] += WW[ii,jj]*ZZ[jj] - stepsize*WW[ii,jj]*Delta_u[jj]
 

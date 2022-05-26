@@ -219,7 +219,7 @@ for tt in range (MAXITERS): # For each iteration
 		UUp[ii] = VV[ii] + ZZ[ii] - stepsize*Delta_u[ii]
 
 		# ZZ update
-		ZZp[ii] = stepsize*Delta_u[ii] # WW[ii,ii]*ZZ[ii] + 
+		ZZp[ii] = WW[ii,ii]*ZZ[ii] +  stepsize*Delta_u[ii]
 		for jj in Nii:
 			ZZp[ii] += WW[ii,jj]*ZZ[jj] - stepsize*WW[ii,jj]*Delta_u[jj]
 

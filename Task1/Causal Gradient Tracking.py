@@ -5,8 +5,8 @@ from sklearn.metrics import accuracy_score
 
 ###############################################################################
 # Useful constants
-MAXITERS = 20 +1  # Explicit Casting
-NN = 5
+MAXITERS = 100 +1  # Explicit Casting
+NN = 10
 
 ###############################################################################
 # Generate Network Binomial Graph
@@ -147,8 +147,8 @@ def BCE(y_pred, y_true):
 	bce_d = - (y_true - y_pred) / (y_pred*(1 - y_pred) +1e-15) 								#(y_true / y_pred) - ((1 - y_true) / (1 - y_pred))
 	return bce, bce_d
 
-chosen_class = 4
-n_samples = NN*5
+chosen_class = 1
+n_samples = NN*50
 
 (train_D, train_y), (test_D, test_y) = mnist.load_data()
 train_D , test_D = train_D/255.0 , test_D/255.0
@@ -157,8 +157,8 @@ train_D = train_D.reshape((train_D.shape[0], 28 * 28))
 test_D = test_D.reshape((test_D.shape[0], 28 * 28))
 
 
-train_y = [1 if y > chosen_class else 0 for y in train_y]
-test_y = [1 if y > chosen_class else 0 for y in test_y]
+train_y = [1 if y == chosen_class else 0 for y in train_y]
+test_y = [1 if y == chosen_class else 0 for y in test_y]
 
 
 idx  = np.argsort(np.random.random(n_samples))
@@ -175,7 +175,7 @@ print(label_point)
 T = 3	# Layers
 d = 28*28	# Number of neurons in each layer. Same numbers for all the layers
 
-stepsize = 1e-4 # learning rate
+stepsize = 1e-3 # learning rate
 J = np.zeros((MAXITERS)) # Cost
 
 UU = np.random.randn(NN, T-1, d, d+1)	# U_t : U_0 Initial Weights / Initial Input Trajectory initializer randomly 
@@ -219,7 +219,7 @@ for tt in range (MAXITERS): # For each iteration
 		UUp[ii] = VV[ii] + ZZ[ii] - stepsize*Delta_u[ii]
 
 		# ZZ update
-		ZZp[ii] = WW[ii,ii]*ZZ[ii] + stepsize*Delta_u[ii]
+		ZZp[ii] = WW[ii,ii]*ZZ[ii] - stepsize*WW[ii,ii]*Delta_u[ii] + stepsize*Delta_u[ii]
 		for jj in Nii:
 			ZZp[ii] += WW[ii,jj]*ZZ[jj] - stepsize*WW[ii,jj]*Delta_u[jj]
 
@@ -227,7 +227,7 @@ for tt in range (MAXITERS): # For each iteration
 	UU = UUp
 	ZZ = ZZp
 
-	if (tt % 1) == 0:
+	if (tt % 5) == 0:
 		print(f"Iteration {tt:3d} - loss: {J[tt]/NN:4.3f}", end="\n")
 
 plt.figure()

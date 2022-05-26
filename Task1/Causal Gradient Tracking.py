@@ -1,16 +1,12 @@
-from cmath import log
-from math import log2
 import numpy as np
-
-
 import matplotlib.pyplot as plt
 from keras.datasets import mnist
 from sklearn.metrics import accuracy_score
 
 ###############################################################################
 # Useful constants
-MAXITERS = 50 +1  # Explicit Casting
-NN = 10
+MAXITERS = 20 +1  # Explicit Casting
+NN = 5
 
 ###############################################################################
 # Generate Network Binomial Graph
@@ -98,22 +94,21 @@ def adjoint_dynamics(ltp,xt,ut):
               delta_ut loss gradient wrt u_t
   """
   df_dx = np.zeros((d,d))
-
-  # df_du = np.zeros((d,(d+1)*d))
+  df_du = np.zeros((d,(d+1)))
+  
   Delta_ut = np.zeros((d,d+1))
 
   for j in range(d):
     dsigma_j = sigmoid_fn_derivative(xt@ut[j,1:] + ut[j,0]) 
 
     df_dx[:,j] = ut[j,1:]*dsigma_j
-    # df_du[j, XX] = dsigma_j*np.hstack([1,xt])
+    df_du[j,:] = np.hstack([1,xt])*dsigma_j
     
     # B'@ltp
-    Delta_ut[j,0] = ltp[j]*dsigma_j
-    Delta_ut[j,1:] = xt*ltp[j]*dsigma_j
+    Delta_ut[j,0] = df_du[j,0]*ltp[j]
+    Delta_ut[j,1:] = df_du[j,1:]*ltp[j]
   
   lt = df_dx@ltp # A'@ltp
-  # Delta_ut = df_du@ltp
 
   return lt, Delta_ut
 
@@ -140,7 +135,6 @@ def backward_pass(xx,uu,llambdaT):
 
 
 ###############################################################################
-# GO!
 
 def MSE(y_pred, y_true):
 	mse = (y_pred - y_true)**2
@@ -178,10 +172,10 @@ label_point = np.array([ train_y[n*i: n*i+n] for i in range(NN) ])
 print(label_point)
 
 
-T = 5	# Layers
+T = 3	# Layers
 d = 28*28	# Number of neurons in each layer. Same numbers for all the layers
 
-stepsize = 1e-5 # learning rate
+stepsize = 1e-3 # learning rate
 J = np.zeros((MAXITERS)) # Cost
 
 UU = np.random.randn(NN, T-1, d, d+1)	# U_t : U_0 Initial Weights / Initial Input Trajectory initializer randomly 
@@ -233,7 +227,7 @@ for tt in range (MAXITERS): # For each iteration
 	UU = UUp
 	ZZ = ZZp
 
-	if (tt % 5) == 0:
+	if (tt % 1) == 0:
 		print(f"Iteration {tt:3d} - loss: {J[tt]/NN:4.3f}", end="\n")
 
 plt.figure()

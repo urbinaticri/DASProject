@@ -5,7 +5,7 @@ from sklearn.metrics import accuracy_score
 
 ###############################################################################
 # Useful constants
-MAXITERS = 100 +1  # Explicit Casting
+MAXITERS = 50 +1  # Explicit Casting
 NN = 10
 
 ###############################################################################
@@ -22,17 +22,22 @@ while 1:
 		break
 
 ###############################################################################
-# Compute mixing matrix
-threshold = 1e-10
-WW = 1.5*I_NN + 0.5*Adj
+# Compute weighted adjacency matrix
+WW = np.zeros((NN,NN))
 
-ONES = np.ones((NN,NN))
-ZEROS = np.zeros((NN,NN))
-WW = np.maximum(WW,0*ONES)
-while any(abs(np.sum(WW,axis=1)-1) > threshold):
-	WW = WW/(WW@ONES) # row
-	# WW = WW/(ONES@WW) # col
-	WW = np.maximum(WW,0*ONES)
+for ii in range(NN):
+  N_ii = np.nonzero(Adj[ii])[0] # In-Neighbors of node i
+  deg_ii = len(N_ii)
+  
+  for jj in N_ii:
+    N_jj = np.nonzero(Adj[jj])[0] # In-Neighbors of node j
+    # deg_jj = len(N_jj)
+    deg_jj = N_jj.shape[0]
+
+    WW[ii,jj] = 1/(1+max( [deg_ii,deg_jj] ))
+    # WW[ii,jj] = 1/(1+np.max(np.stack((deg_ii,deg_jj)) ))
+
+WW += I_NN - np.diag(np.sum(WW,axis=0))
 
 ###############################################################################
 
@@ -147,8 +152,8 @@ def BCE(y_pred, y_true):
 	bce_d = - (y_true - y_pred) / (y_pred*(1 - y_pred) +1e-15) 								#(y_true / y_pred) - ((1 - y_true) / (1 - y_pred))
 	return bce, bce_d
 
-chosen_class = 1
-n_samples = NN*50
+chosen_class = 4
+n_samples = NN*5
 
 (train_D, train_y), (test_D, test_y) = mnist.load_data()
 train_D , test_D = train_D/255.0 , test_D/255.0
@@ -172,7 +177,7 @@ label_point = np.array([ train_y[n*i: n*i+n] for i in range(NN) ])
 print(label_point)
 
 
-T = 3	# Layers
+T = 4	# Layers
 d = 28*28	# Number of neurons in each layer. Same numbers for all the layers
 
 stepsize = 1e-3 # learning rate
@@ -219,7 +224,7 @@ for tt in range (MAXITERS): # For each iteration
 		UUp[ii] = VV[ii] + ZZ[ii] - stepsize*Delta_u[ii]
 
 		# ZZ update
-		ZZp[ii] = WW[ii,ii]*ZZ[ii] - stepsize*WW[ii,ii]*Delta_u[ii] + stepsize*Delta_u[ii]
+		ZZp[ii] = WW[ii,ii]*ZZ[ii] - stepsize * (WW[ii,ii]*Delta_u[ii] - Delta_u[ii])
 		for jj in Nii:
 			ZZp[ii] += WW[ii,jj]*ZZ[jj] - stepsize*WW[ii,jj]*Delta_u[jj]
 

@@ -5,7 +5,7 @@ from sklearn.metrics import accuracy_score
 
 ###############################################################################
 # Useful constants
-MAXITERS = 50 +1  # Explicit Casting
+MAXITERS = 100 +1  # Explicit Casting
 NN = 10
 
 ###############################################################################
@@ -21,9 +21,10 @@ while 1:
 	if np.all(test>0):
 		break
 
+print(Adj)
 ###############################################################################
 # Compute weighted adjacency matrix
-WW = np.zeros((NN,NN))
+""" WW = np.zeros((NN,NN))
 
 for ii in range(NN):
   N_ii = np.nonzero(Adj[ii])[0] # In-Neighbors of node i
@@ -38,6 +39,19 @@ for ii in range(NN):
     # WW[ii,jj] = 1/(1+np.max(np.stack((deg_ii,deg_jj)) ))
 
 WW += I_NN - np.diag(np.sum(WW,axis=0))
+print(WW) """
+# Compute mixing matrix
+WW = 1.5*I_NN + 0.5*Adj
+
+ONES = np.ones((NN,NN))
+ZEROS = np.zeros((NN,NN))
+
+threshold = 1e-10
+while any(abs(np.sum(WW,axis=1)-1) > threshold) or any(abs(np.sum(WW,axis=0)-1) > threshold):
+
+	WW = WW/(WW@ONES) # -> Row-stochasticity
+	WW = WW/(ONES@WW) # -> Col-stochasticity
+	WW = np.maximum(WW,0)
 
 ###############################################################################
 
@@ -166,7 +180,7 @@ train_y = [1 if y == chosen_class else 0 for y in train_y]
 test_y = [1 if y == chosen_class else 0 for y in test_y]
 
 
-idx  = np.argsort(np.random.random(n_samples))
+idx  = np.argsort(np.random.random(train_D.shape[0]))
 train_D = [train_D[i] for i in idx][:n_samples]
 train_y = [train_y[i] for i in idx][:n_samples]
 
@@ -177,7 +191,7 @@ label_point = np.array([ train_y[n*i: n*i+n] for i in range(NN) ])
 print(label_point)
 
 
-T = 4	# Layers
+T = 3	# Layers
 d = 28*28	# Number of neurons in each layer. Same numbers for all the layers
 
 stepsize = 1e-3 # learning rate
@@ -196,6 +210,7 @@ for tt in range (MAXITERS): # For each iteration
 
 	for ii in range(NN): # For each node
 		totalCost = 0 # Sum up the cost of each image
+		Delta_u[ii] = 0
 		for kk in range(n): # For each image of the node
 
 			image = data_point[ii][kk]
@@ -207,12 +222,14 @@ for tt in range (MAXITERS): # For each iteration
 			cost, cost_d = BCE(XX[-1,-1], label)
 			totalCost += cost
 			llambdaT = cost_d
-		
+
 			# Backward propagation
-			Delta_u[ii] = backward_pass(XX, UU[ii], llambdaT) #\nabla f_i(x_{i,t})
+			Delta_u[ii] += backward_pass(XX, UU[ii], llambdaT) #\nabla f_i(x_{i,t})
 		
 		# Store the Loss Value across Iterations (the sum of costs of all nodes)
 		J[tt] += totalCost/n
+
+		
 	
 	for ii in range(NN): # For each node
 		Nii = np.nonzero(Adj[ii])[0]
@@ -245,8 +262,10 @@ plt.show()
 
 # Evaluation on test
 y_pred = []
-test_images = test_D[:n_samples]
-test_labels = test_y[:n_samples]
+
+idx  = np.argsort(np.random.random(test_D.shape[0]))
+test_images = [test_D[i] for i in idx][:n_samples]
+test_labels = [test_y[i] for i in idx][:n_samples]
 for image, label in zip(test_images, test_labels):
 	# Forward pass
 	XX = forward_pass(UU[ii], image)	#f_i(x_i,t)

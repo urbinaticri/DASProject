@@ -34,12 +34,12 @@ def P(g_ij):
 
 # formation: square ex. in fig 2 -> agent 1 bottom-left, order counter-clockwise
 L = 1
-D =sqrt(1)
+D = np.sqrt(2*L)
 g_star = [[	[0,0],		[0,L],		[D,D],		[L,0]],
 	 	  [	[0,L],		[0,0],		[L,0],		[D,D]],
 	 	  [	[D,D],		[L,0],		[0,0], 		[0,L]],
 	 	  [	[L,0],		[D,D],		[0,L],		[0,0]]]
-g_star = np.array(g_star)
+g_star = np.array(g_star, dtype=np.float32)
 Pg_star = np.zeros((d*NN, d*NN))
 for ii in range(NN):
 	for jj in range(NN):
@@ -55,8 +55,10 @@ O_NN = np.ones((NN,1), dtype=int)
 	
 # ER Network generation
 while 1:
-	graph_ER = nx.binomial_graph(NN,p_ER)
-	Adj = nx.adjacency_matrix(graph_ER).toarray()
+	Adj = np.random.binomial(1, p_ER, (NN, NN))
+	Adj = np.logical_or(Adj, Adj.T)
+	Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int)
+
 	# test connectivity
 	test = np.linalg.matrix_power((I_NN+Adj),NN)
 	
@@ -96,25 +98,20 @@ BB = np.concatenate((BB_ext_up, BB_ext_low), axis = 0)
 # system dynamics: Formation Maneuvering with Constant Leader Velocity
 def form_maneuv_clv_func(p, v, k_p, k_v, Adj):
 	u = np.zeros(np.size(v))
-	print(u)
 	for ii in range(NN):
-		N_ii = np.where(Adj[:,ii]>0)[0]
-		index_ii =  ii*d + np.arange(d)*d
+		N_ii = np.nonzero(Adj[ii])[0] # In-Neighbors of node i
 		for jj in N_ii:
-			index_jj = jj*d + np.arange(d)*d
-			pp = p[index_ii] - p[index_jj]
-			vv = v[index_ii] - v[index_jj]
-			u = P(g_star[index_ii, index_jj]) * (k_p*pp + k_v*vv)
-	return u
-
-L_f = L_IN[0:NN-n_leaders, 0:NN-n_leaders]
-L_fl = L_IN[0:NN-n_leaders, NN-n_leaders:]
+			pp = p[ii] - p[jj]
+			vv = v[ii] - v[jj]
+			u -= Pg_star[ii, jj] * (k_p*pp + k_v*vv)
+	return u.reshape(-1,1)
+L_f = L_IN[(NN-n_leaders):, (NN-n_leaders):]
+L_fl = L_IN[(NN-n_leaders):, 0:n_leaders]
 LL = np.concatenate((L_f, L_fl), axis = 1)
 LL = np.concatenate((np.zeros((n_leaders,NN)), LL), axis = 0)
 
 # replicate for each dimension
 LL_kron = np.kron(LL,I_nx)
-
 
 x_init = np.vstack((
 	p,
@@ -128,7 +125,7 @@ k_i = 0.4
 K_I = -k_i*I_NN_nx
 
 LL_ext_up = np.concatenate((LL_kron, K_I), axis = 1)
-LL_ext_low = np.concatenate((np.zeros(LL_kron.shape), LL_kron), axis = 1)
+LL_ext_low = np.concatenate((LL_kron, np.zeros(LL_kron.shape)), axis = 1)
 LL_ext = np.concatenate((LL_ext_up, LL_ext_low), axis = 0)
 
 BB = np.concatenate((np.zeros((NN*d,NN*d)), BB), axis = 0)
@@ -138,7 +135,7 @@ B = BB
 C = np.identity(np.size(LL_ext,axis = 0)) # to comply with StateSpace syntax
 
 ################
-sys = control.StateSpace(A,B,C,0) # dx(p,v) = -L x(p,v) + B u
+sys = control.StateSpace(A,B,C,0) # dx = -L x + B u
 
 dt = 0.01
 Tmax = 10.0

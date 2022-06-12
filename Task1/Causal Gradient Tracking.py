@@ -42,20 +42,20 @@ for ii in range(NN):
 
 WW += I_NN - np.diag(np.sum(WW,axis=0))
 
-""" # Compute mixing matrix
-WW = 1.5*I_NN + 0.5*Adj
+# Compute mixing matrix
+# WW = 1.5*I_NN + 0.5*Adj
 
-ONES = np.ones((NN, NN))
-ZEROS = np.zeros((NN, NN))
+# ONES = np.ones((NN, NN))
+# ZEROS = np.zeros((NN, NN))
 
-threshold = 1e-10
-while any(abs(np.sum(WW, axis=1)-1) > threshold) or any(abs(np.sum(WW, axis=0)-1) > threshold):
+# threshold = 1e-10
+# while any(abs(np.sum(WW, axis=1)-1) > threshold) or any(abs(np.sum(WW, axis=0)-1) > threshold):
 
-    WW = WW/(WW@ONES)  # -> Row-stochasticity
-    WW = WW/(ONES@WW)  #  -> Col-stochasticity
-    WW = np.maximum(WW, 0) """
+#     WW = WW/(WW@ONES)  # -> Row-stochasticity
+#     WW = WW/(ONES@WW)  #  -> Col-stochasticity
+#     WW = np.maximum(WW, 0)
 
-print('Check Stochasticity:\n row: {} \n column {}'.format(
+print('Check Stochasticity:\n row: {} \n column {}\n'.format(
     np.sum(WW,axis=1),
     np.sum(WW,axis=0)
 ))
@@ -194,24 +194,35 @@ train_D, test_D = train_D/255.0, test_D/255.0
 #print(train_D.shape, test_D.shape)
 train_D = train_D.reshape((train_D.shape[0], 28 * 28))
 test_D = test_D.reshape((test_D.shape[0], 28 * 28))
-
-
 train_y = [1 if y == chosen_class else 0 for y in train_y]
-test_y = [1 if y == chosen_class else 0 for y in test_y]
+test_y =  [1 if y == chosen_class else 0 for y in test_y]
 
+# Shuffle
+idx = np.arange(train_D.shape[0])
+np.random.shuffle(idx)
+train_D = np.array([train_D[i] for i in idx])
+train_y = np.array([train_y[i] for i in idx])
 
-idx = np.argsort(np.arange(train_D.shape[0]))
-train_D = [train_D[i] for i in idx][:n_samples]
-train_y = [train_y[i] for i in idx][:n_samples]
+# Without sampling
+# n = n_samples//NN # Number of samples per node
+# data_point = np.array([train_D[n*i: n*i+n] for i in range(NN)])
+# label_point = np.array([train_y[n*i: n*i+n] for i in range(NN)])
 
+# With pos/neg sampling
+pos_idx = np.where(train_y == 1)[0][:n_samples//2]
+neg_idx = np.where(train_y == 0)[0][:n_samples-n_samples//2]
 
-n = int(n_samples/NN)  # Number of samples per node
-data_point = np.array([train_D[n*i: n*i+n] for i in range(NN)])
-label_point = np.array([train_y[n*i: n*i+n] for i in range(NN)])
+n = n_samples//NN # Number of samples per node
+indices = np.concatenate((pos_idx, neg_idx))
+np.random.shuffle(indices)
+indices = indices.reshape((NN, n))
+
+data_point = train_D[indices]
+label_point = train_y[indices]
+
 print(label_point)
 
-
-T = 4  # Layers
+T = 5  # Layers
 d = 28*28  #  Number of neurons in each layer. Same numbers for all the layers
 
 stepsize = 1e-4  #  learning rate

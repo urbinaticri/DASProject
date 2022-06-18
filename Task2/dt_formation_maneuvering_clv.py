@@ -43,8 +43,10 @@ g_star = np.array(g_star, dtype=np.float32)
 Pg_star = np.zeros((d*NN, d*NN))
 for ii in range(NN):
 	for jj in range(NN):
-		Pg_star[ii:ii+d, jj:jj+d] = P(g_star[ii, jj])
+		Pg_star[2*ii:2*ii+d, 2*jj:2*jj+d] = P(g_star[ii, jj])
 
+print(Pg_star)
+exit()
 
 p_ER = 0.9
 

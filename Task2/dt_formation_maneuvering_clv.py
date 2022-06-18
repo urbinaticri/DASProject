@@ -26,26 +26,32 @@ v = np.vstack((
 
 # bearing unit vector g_{ij}
 def g(i,j):
-	return (p[j*d:j*d+d] - p[i*d:i*d+d]) / np.linalg.norm(p[j*d:j*d+d] - p[i*d:i*d+d])
+	return (p[j,j+d] - p[i:i+d]) / np.linalg.norm(p[j,j+d] - p[i:i+d])
+
 # orthogonal projection matrix P_{g_{ij}}
 def P(g_ij):
 	return np.identity(d) - g_ij@(g_ij.T)
 
-
 # formation: square ex. in fig 2 -> agent 1 bottom-left, order counter-clockwise
 L = 1
-print(np.linalg.norm([L,L]))
-
-g_star = [[	[0,0],		[0,L]/np.linalg.norm([0,L]),		[L,L]/np.linalg.norm([L,L]),		[L,0]/np.linalg.norm([L,0])],
-	 	  [	[0,L]/np.linalg.norm([0,L]),		[0,0],		[L,0]/np.linalg.norm([L,0]),		[L,L]/np.linalg.norm([L,L])],
-	 	  [	[L,L]/np.linalg.norm([L,L]),		[L,0]/np.linalg.norm([L,0]),		[0,0], 		[0,L]/np.linalg.norm([0,L])],
-	 	  [	[L,0]/np.linalg.norm([L,0]),		[L,L]/np.linalg.norm([L,L]),		[0,L]/np.linalg.norm([0,L]),		[0,0]]]
+D = np.sqrt(2*L)
+g_star = [[	[0,0],		[0,L],		[D,D],		[L,0]],
+	 	  [	[0,L],		[0,0],		[L,0],		[D,D]],
+	 	  [	[D,D],		[L,0],		[0,0], 		[0,L]],
+	 	  [	[L,0],		[D,D],		[0,L],		[0,0]]]
 g_star = np.array(g_star, dtype=np.float32)
 Pg_star = np.zeros((d*NN, d*NN))
 for ii in range(NN):
 	for jj in range(NN):
+<<<<<<< HEAD
 		Pg_star[ii*d:ii*d+d, jj*d:jj*d+d] = P(g_star[ii, jj])
 
+=======
+		Pg_star[2*ii:2*ii+d, 2*jj:2*jj+d] = P(g_star[ii, jj])
+
+print(Pg_star)
+exit()
+>>>>>>> 036ef5d16b95470afadbc02be558e8b5e06d03b0
 
 p_ER = 0.9
 

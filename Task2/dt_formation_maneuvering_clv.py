@@ -130,7 +130,9 @@ LL_ext_up = np.concatenate((LL_kron, K_I), axis = 1)
 LL_ext_low = np.concatenate((LL_kron, np.zeros(LL_kron.shape)), axis = 1)
 LL_ext = np.concatenate((LL_ext_up, LL_ext_low), axis = 0)
 
-BB = np.concatenate((np.zeros((NN*d,NN*d)), BB), axis = 0)
+BB = np.concatenate((np.zeros_like(BB_ext_up), BB_ext_low ), axis = 0)
+print(BB)
+exit()
 
 A = -LL_ext
 B = BB

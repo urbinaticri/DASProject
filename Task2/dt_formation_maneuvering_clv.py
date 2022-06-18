@@ -43,15 +43,8 @@ g_star = np.array(g_star, dtype=np.float32)
 Pg_star = np.zeros((d*NN, d*NN))
 for ii in range(NN):
 	for jj in range(NN):
-<<<<<<< HEAD
 		Pg_star[ii*d:ii*d+d, jj*d:jj*d+d] = P(g_star[ii, jj])
 
-=======
-		Pg_star[2*ii:2*ii+d, 2*jj:2*jj+d] = P(g_star[ii, jj])
-
-print(Pg_star)
-exit()
->>>>>>> 036ef5d16b95470afadbc02be558e8b5e06d03b0
 
 p_ER = 0.9
 
@@ -104,14 +97,15 @@ BB = np.concatenate((BB_ext_up, BB_ext_low), axis = 0)
 
 # system dynamics: Formation Maneuvering with Constant Leader Velocity
 def form_maneuv_clv_func(p, v, k_p, k_v, Adj):
-	u = np.zeros(np.size(v))
-	for ii in range(NN):
+	u = np.zeros(np.shape(v))
+	for ii in range(NN-n_f,NN):
 		N_ii = np.nonzero(Adj[ii])[0] # In-Neighbors of node i
 		for jj in N_ii:
-			pp = p[ii] - p[jj]
-			vv = v[ii] - v[jj]
-			u -= Pg_star[ii*d:ii*d+d, jj*d:jj*d+d] * (k_p*pp + k_v*vv)
-	return u.reshape(-1,1)
+			pp = p[ii*d:ii*d+d] - p[jj*d:jj*d+d]
+			vv = v[ii*d:ii*d+d] - v[jj*d:jj*d+d]
+			pg_star = Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
+			u[ii*d:ii*d+d] -=  pg_star @ (k_p*pp + k_v*vv)
+	return u
 
 L_f = L_IN[(NN-n_leaders):, (NN-n_leaders):]
 L_fl = L_IN[(NN-n_leaders):, 0:n_leaders]
@@ -168,7 +162,6 @@ for i, t in enumerate(horizon):
 
 x_out = np.zeros((x_init.shape[0], len(horizon)))
 x = x_init
-print(x)
 for i, t in enumerate(horizon):
 	p, v = x[:NN*d], x[:-NN*d]
 

@@ -45,8 +45,7 @@ Pg_star = np.zeros((d*NN, d*NN))
 for ii in range(NN):
 	for jj in range(NN):
 		Pg_star[ii*d:ii*d+d, jj*d:jj*d+d] = P(g_star[ii, jj])
-print(Pg_star)
-exit()
+
 
 p_ER = 0.9
 
@@ -80,9 +79,9 @@ for ii in range(NN):
 
 	sumPg_ik_star = 0
 	for jj in N_ii:
-		B[ii:ii+d, jj:jj+d] = -Pg_star[ii:ii+d, jj:jj+d]
-		sumPg_ik_star += Pg_star[ii:ii+d, jj:jj+d]
-	B[ii:ii+d, ii:ii+d] = sumPg_ik_star
+		B[ii*d:ii*d+d, jj*d:jj*d+d] = -Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
+		sumPg_ik_star += Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
+	B[ii*d:ii*d+d, ii*d:ii*d+d] = sumPg_ik_star
 
 # Partitioning B
 n_l = n_leaders
@@ -105,7 +104,7 @@ def form_maneuv_clv_func(p, v, k_p, k_v, Adj):
 		for jj in N_ii:
 			pp = p[ii] - p[jj]
 			vv = v[ii] - v[jj]
-			u -= Pg_star[ii, jj] * (k_p*pp + k_v*vv)
+			u -= Pg_star[ii*d:ii*d+d, jj*d:jj*d+d] * (k_p*pp + k_v*vv)
 	return u.reshape(-1,1)
 
 L_f = L_IN[(NN-n_leaders):, (NN-n_leaders):]
@@ -175,6 +174,7 @@ for i, t in enumerate(horizon):
 	print(f"---------\n{dx}\n---------")
 
 	x_out = x + dx
+
 	x = x_out
 
 exit()

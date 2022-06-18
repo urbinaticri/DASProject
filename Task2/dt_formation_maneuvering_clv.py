@@ -26,7 +26,7 @@ v = np.vstack((
 
 # bearing unit vector g_{ij}
 def g(i,j):
-	return (p[j,j+d] - p[i:i+d]) / (np.linalg.norm(p[j,j+d] - p[i:i+d])**2)
+	return (p[j,j+d] - p[i:i+d]) / np.linalg.norm(p[j,j+d] - p[i:i+d])
 
 # orthogonal projection matrix P_{g_{ij}}
 def P(g_ij):
@@ -105,6 +105,7 @@ def form_maneuv_clv_func(p, v, k_p, k_v, Adj):
 			vv = v[ii] - v[jj]
 			u -= Pg_star[ii, jj] * (k_p*pp + k_v*vv)
 	return u.reshape(-1,1)
+
 L_f = L_IN[(NN-n_leaders):, (NN-n_leaders):]
 L_fl = L_IN[(NN-n_leaders):, 0:n_leaders]
 LL = np.concatenate((L_f, L_fl), axis = 1)
@@ -135,28 +136,46 @@ B = BB
 C = np.identity(np.size(LL_ext,axis = 0)) # to comply with StateSpace syntax
 
 ################
-sys = control.StateSpace(A,B,C,0) # dx = -L x + B u
-
 dt = 0.01
 Tmax = 10.0
 horizon = np.arange(0.0, Tmax, dt)
 
+sys = control.StateSpace(A,B,C,0) # dx = -L x + B u
+
 k_p = 0.5
 k_v = 0.5
 
-x_out = np.zeros((x_init.shape[0], len(horizon)))
+""" x_out = np.zeros((x_init.shape[0], len(horizon)))
 x = x_init
 for i, t in enumerate(horizon):
 	p, v = x[:NN*d], x[:-NN*d]
 
 	u = form_maneuv_clv_func(p, v, k_p, k_v, Adj)
+	print(u)
+	print(len(u))
 
-	(T, yout, xout) = control.forced_response(sys, X0=x, U=u, return_x=True)
+	(T, yout, xout) = control.forced_response(sys, X0=x, U=u, T=None, return_x=True)
 
 	x_out[i] = xout
-	x = xout
+	x = xout """
 
+x_out = np.zeros((x_init.shape[0], len(horizon)))
+x = x_init
+print(x)
+for i, t in enumerate(horizon):
+	p, v = x[:NN*d], x[:-NN*d]
 
+	u = form_maneuv_clv_func(p, v, k_p, k_v, Adj)
+	
+	# dx = -L x + B u
+	dx = A@x + B@u
+
+	print(f"---------\n{dx}\n---------")
+
+	x_out = x + dx
+	x = x_out
+
+exit()
 # Generate Figure
 plt.figure(1)
 for x in x_out:

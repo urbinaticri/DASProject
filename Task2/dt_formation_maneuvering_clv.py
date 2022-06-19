@@ -80,6 +80,7 @@ for ii in range(NN):
 	for jj in N_ii:
 		B[ii*d:ii*d+d, jj*d:jj*d+d] = -Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
 		sumPg_ik_star += Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
+	#TODO: check for positioning of sumPg_ik_star: should the matrix be diagonal?
 	B[ii*d:ii*d+d, ii*d:ii*d+d] = sumPg_ik_star
 
 # Partitioning B
@@ -94,6 +95,8 @@ B_ff = B[d*n_f:d*NN,d*n_f:d*NN] # shape (d*n_f, d*n_f) -> if nonsingular then ta
 BB_ext_up = np.concatenate((B_ll, B_lf), axis = 1)
 BB_ext_low  = np.concatenate((B_fl, B_ff), axis = 1)
 BB = np.concatenate((BB_ext_up, BB_ext_low), axis = 0)
+
+#TODO: still to check down from here
 
 # system dynamics: Formation Maneuvering with Constant Leader Velocity
 def form_maneuv_clv_func(p, v, k_p, k_v, Adj):

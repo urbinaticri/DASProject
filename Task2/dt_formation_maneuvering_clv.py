@@ -14,19 +14,25 @@ d = 2 # dimension of positions and velocities
 
 # positions
 p = np.vstack((
-	np.zeros((d*n_leaders,1)),
-	np.zeros((d*(NN-n_leaders),1))
-)) + 5*np.random.rand(d*NN,1)
+	np.zeros((d*n_leaders,2)),
+	np.zeros((d*(NN-n_leaders),2))
+)) + 5*np.random.rand(d*NN,2)
+#print(p)
 
 # velocities
 v = np.vstack((
-	np.zeros((d*n_leaders,1)),
-	np.zeros((d*(NN-n_leaders),1))
+	np.zeros((d*n_leaders,2)),
+	np.zeros((d*(NN-n_leaders),2))
 ))
 
 # bearing unit vector g_{ij}
 def g(i,j):
-	return (p[j,j+d] - p[i:i+d]) / np.linalg.norm(p[j,j+d] - p[i:i+d])
+	return (p[j,:] - p[i,:]) / np.linalg.norm(p[j,:] - p[i,:])
+
+#print(np.linalg.norm(p[7] - p[1]))
+#print(p[7] - p[1])
+#print(g(0,3))
+#exit()
 
 # orthogonal projection matrix P_{g_{ij}}
 def P(g_ij):
@@ -35,15 +41,21 @@ def P(g_ij):
 # formation: square ex. in fig 2 -> agent 1 bottom-left, order counter-clockwise
 L = 1
 D = np.sqrt(2*L)
-g_star = [[	[0,0],		[0,L],		[D,D],		[L,0]],
+
+#TODO: Set bearing angles instead of positions, leaders must keep position
+GG = [[	[0,0],		[0,L],		[D,D],		[L,0]],
 	 	  [	[0,L],		[0,0],		[L,0],		[D,D]],
 	 	  [	[D,D],		[L,0],		[0,0], 		[0,L]],
 	 	  [	[L,0],		[D,D],		[0,L],		[0,0]]]
-g_star = np.array(g_star, dtype=np.float32)
+GG = np.array(GG, dtype=np.float32)
 Pg_star = np.zeros((d*NN, d*NN))
+
+#TODO: define pg_star based on the couplets of neighbours being currently checked [i,j,:]
 for ii in range(NN):
 	for jj in range(NN):
-		Pg_star[ii*d:ii*d+d, jj*d:jj*d+d] = P(g_star[ii, jj])
+		g_star = g(GG[ii, ii, :])
+		print(g_star)
+		Pg_star[ii*d:ii*d+d, jj*d:jj*d+d] = P(g_star)
 
 
 p_ER = 0.9
@@ -80,7 +92,6 @@ for ii in range(NN):
 	for jj in N_ii:
 		B[ii*d:ii*d+d, jj*d:jj*d+d] = -Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
 		sumPg_ik_star += Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
-	#TODO: check for positioning of sumPg_ik_star: should the matrix be diagonal?
 	B[ii*d:ii*d+d, ii*d:ii*d+d] = sumPg_ik_star
 
 # Partitioning B

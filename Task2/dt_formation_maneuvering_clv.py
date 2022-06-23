@@ -14,20 +14,19 @@ d = 2 # dimension of positions and velocities
 
 # positions
 p = np.vstack((
-	np.zeros((n_leaders,d)),
-	np.zeros(((NN-n_leaders),d))
-)) + 5*np.random.rand(d*NN,d)
-#print(p)
+	np.zeros((d*n_leaders,1)),
+	np.zeros((d*(NN-n_leaders),1))
+)) + 5*np.random.rand(d*NN,1)
 
 # velocities
 v = np.vstack((
-	np.zeros((n_leaders,d)),
-	np.zeros(((NN-n_leaders),d))
+	np.zeros((d*n_leaders,1)),
+	np.zeros((d*(NN-n_leaders),1))
 ))
 
 # bearing unit vector g_{ij}
-def g(i,j):
-	return (p[j,:] - p[i,:]) / np.linalg.norm(p[j,:] - p[i,:])
+def g(p,i,j):
+	return (p[j*d:j*d+d] - p[i*d:i*d+d]) / (np.linalg.norm(p[j*d:j*d+d] - p[i*d:i*d+d]) + 1e-15)
 
 #print(np.linalg.norm(p[7] - p[1]))
 #print(p[7] - p[1])
@@ -43,20 +42,22 @@ L = 1
 D = np.sqrt(2*L)
 
 #TODO: Set bearing angles instead of positions, leaders must keep position
-GG = [[	[0,0],		[0,L],		[D,D],		[L,0]],
-	 	  [	[0,L],		[0,0],		[L,0],		[D,D]],
-	 	  [	[D,D],		[L,0],		[0,0], 		[0,L]],
-	 	  [	[L,0],		[D,D],		[0,L],		[0,0]]]
-GG = np.array(GG, dtype=np.float32)
+
+PP = 	np.array([L,0, L, L, 0, L, 0, 0]).T 
+GG = np.zeros((NN, NN, d), dtype=np.float32)
 Pg_star = np.zeros((d*NN, d*NN))
 
 #TODO: define pg_star based on the couplets of neighbours being currently checked [i,j,:]
 for ii in range(NN):
 	for jj in range(NN):
-		g_star = g(GG[ii, ii, :])
-		print(g_star)
+		g_star = g(PP, ii, jj)
+		GG[ii, jj, :] = g_star
 		Pg_star[ii*d:ii*d+d, jj*d:jj*d+d] = P(g_star)
 
+is_GG_inverse = GG+np.transpose(GG, axes= 1)
+print(is_GG_inverse)
+print(GG)
+exit()
 
 p_ER = 0.9
 

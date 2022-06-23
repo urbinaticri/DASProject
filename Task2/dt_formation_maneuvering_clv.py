@@ -26,7 +26,7 @@ v = np.vstack((
 
 # bearing unit vector g_{ij}
 def g(p,i,j):
-	return (p[j*d:j*d+d] - p[i*d:i*d+d]) / (np.linalg.norm(p[j*d:j*d+d] - p[i*d:i*d+d]) + 1e-15)
+	return (p[j*d:j*d+d] - p[i*d:i*d+d]) / (np.linalg.norm(p[j*d:j*d+d] - p[i*d:i*d+d]) + 10e-15 )
 
 #print(np.linalg.norm(p[7] - p[1]))
 #print(p[7] - p[1])
@@ -95,7 +95,9 @@ for ii in range(NN):
 		B[ii*d:ii*d+d, jj*d:jj*d+d] = -Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
 		sumPg_ik_star += Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
 	B[ii*d:ii*d+d, ii*d:ii*d+d] = sumPg_ik_star
-print(B)
+
+print("################## B matrix #####################")
+print(np.array_str(B, precision=3, suppress_small=True))
 
 # Partitioning B
 n_l = n_leaders
@@ -106,8 +108,16 @@ B_lf = B[d*0:d*n_l, d*n_f:d*NN]	# shape (d*n_l, d*n_f)
 B_fl = B[d*n_f:d*NN,d*0:d*n_l]	# shape (d*n_f, d*n_l)
 B_ff = B[d*n_f:d*NN,d*n_f:d*NN] # shape (d*n_f, d*n_f) -> if nonsingular then target formation is unique
 
+
+#we will use these for calculating deltas of position and velocities
+pf_star = -np.linalg.inv(B_ff)@B_fl@p[0:n_leaders*d]
+#print(pf_star)
+vf_star = -np.linalg.inv(B_ff)@B_fl@v[0:n_leaders*d]
+#print(vf_star)
+
+
 #TODO: when wrinting report use this to demonstrate determinant of B_ff != 0 => B unique
-print(np.linalg.det(B_ff))
+#print(np.linalg.det(B_ff))
 
 BB_ext_up = np.concatenate((B_ll, B_lf), axis = 1)
 BB_ext_low  = np.concatenate((B_fl, B_ff), axis = 1)
@@ -179,7 +189,84 @@ for i, t in enumerate(horizon):
 
 	x_out[i] = xout
 	x = xout """
+#########################
+#try verbose approach to state evolution, creates the state matrix starting from 
+#the positon and velocity evolution matrices
 
+""" delta_p = p[(NN-n_leaders)*d:] - pf_star
+delta_v = v[(NN-n_leaders)*d:] - vf_star
+delta_vect = np.concatenate((delta_p, delta_v), axis=0)
+print("##################### delta vector ####################")
+print(delta_vect)
+
+state_p = np.concatenate((np.zeros_like(B_ff), np.identity((NN-n_leaders)*2)), axis = 1)
+state_v = np.concatenate((-k_p*B_ff, -k_v*B_ff), axis = 1)
+state_matrix = np.concatenate((state_p, state_v), axis = 0)
+print("##################### state_matrix ####################")
+print(state_matrix)
+
+input_p = np.zeros(((NN-n_leaders)*d, (NN-n_leaders)*d))
+input_v = -np.linalg.inv(B_ff)@B_fl
+input_matrix = np.concatenate((input_p, input_v), axis=0)
+print("###################### input matrix #########################")
+print(input_matrix)
+
+u = -k_p*B_ff@delta_p -k_v*B_ff@delta_v
+#u = np.concatenate((np.zeros(((NN-n_leaders)*d, 1)), u), axis = 0)
+print(u)
+
+delta_evo = state_matrix@delta_vect + input_matrix@u
+print("###################### delta at time t+1 #########################")
+print(delta_evo) """
+
+#start iterations
+
+x_out = np.zeros((x_init.shape[0], len(horizon)))
+x = x_init
+for i, t in enumerate(horizon):
+
+	p, v = x[:NN*d], x[:-NN*d]
+
+	delta_p = p[(NN-n_leaders)*d:] - pf_star
+	delta_v = v[(NN-n_leaders)*d:] - vf_star
+	delta_vect = np.concatenate((delta_p, delta_v), axis=0)
+	#print("##################### delta vector ####################")
+	#print(delta_vect)
+
+	state_p = np.concatenate(
+		(np.zeros_like(B_ff), np.identity((NN-n_leaders)*2)), axis=1)
+	state_v = np.concatenate((-k_p*B_ff, -k_v*B_ff), axis=1)
+	state_matrix = np.concatenate((state_p, state_v), axis=0)
+	#print("##################### state_matrix ####################")
+	#print(state_matrix)
+
+	input_p = np.zeros(((NN-n_leaders)*d, (NN-n_leaders)*d))
+	input_v = -np.linalg.inv(B_ff)@B_fl
+	input_matrix = np.concatenate((input_p, input_v), axis=0)
+	#print("###################### input matrix #########################")
+	#print(input_matrix)
+
+	u = -k_p*B_ff@delta_p - k_v*B_ff@delta_v
+	print("############ control signal ###################")
+	print(u)
+
+	delta_evo = state_matrix@delta_vect #+ input_matrix@u
+	print(f"###################### delta at time t = {t} #########################")
+	print(delta_evo)
+
+	zero_vect = np.zeros((n_leaders*d,1))
+	dx = np.concatenate((zero_vect, delta_evo[:(NN-n_leaders)*d], \
+						zero_vect, delta_evo[:(NN-n_leaders)*d]), axis=0)
+
+	x_out = x - dx
+	print("####################### x out ###################")
+	print(x_out)
+	x = x_out
+
+
+exit()
+
+#########################
 x_out = np.zeros((x_init.shape[0], len(horizon)))
 x = x_init
 for i, t in enumerate(horizon):

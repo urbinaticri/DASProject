@@ -14,15 +14,15 @@ d = 2 # dimension of positions and velocities
 
 # positions
 p = np.vstack((
-	np.zeros((d*n_leaders,2)),
-	np.zeros((d*(NN-n_leaders),2))
-)) + 5*np.random.rand(d*NN,2)
+	np.zeros((n_leaders,d)),
+	np.zeros(((NN-n_leaders),d))
+)) + 5*np.random.rand(d*NN,d)
 #print(p)
 
 # velocities
 v = np.vstack((
-	np.zeros((d*n_leaders,2)),
-	np.zeros((d*(NN-n_leaders),2))
+	np.zeros((n_leaders,d)),
+	np.zeros(((NN-n_leaders),d))
 ))
 
 # bearing unit vector g_{ij}

@@ -54,10 +54,11 @@ for ii in range(NN):
 		GG[ii, jj, :] = g_star
 		Pg_star[ii*d:ii*d+d, jj*d:jj*d+d] = P(g_star)
 
-is_GG_inverse = GG+np.transpose(GG, axes= 1)
-print(is_GG_inverse)
+# TODO: when writing report, use this to demonstrate antisymmetry (it is)
+""" is_GG_antisym = GG+np.transpose(GG, axes= (1, 0, 2))
+print(is_GG_antisym)
 print(GG)
-exit()
+exit() """
 
 p_ER = 0.9
 
@@ -94,6 +95,7 @@ for ii in range(NN):
 		B[ii*d:ii*d+d, jj*d:jj*d+d] = -Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
 		sumPg_ik_star += Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
 	B[ii*d:ii*d+d, ii*d:ii*d+d] = sumPg_ik_star
+print(B)
 
 # Partitioning B
 n_l = n_leaders
@@ -104,16 +106,18 @@ B_lf = B[d*0:d*n_l, d*n_f:d*NN]	# shape (d*n_l, d*n_f)
 B_fl = B[d*n_f:d*NN,d*0:d*n_l]	# shape (d*n_f, d*n_l)
 B_ff = B[d*n_f:d*NN,d*n_f:d*NN] # shape (d*n_f, d*n_f) -> if nonsingular then target formation is unique
 
+#TODO: when wrinting report use this to demonstrate determinant of B_ff != 0 => B unique
+print(np.linalg.det(B_ff))
+
 BB_ext_up = np.concatenate((B_ll, B_lf), axis = 1)
 BB_ext_low  = np.concatenate((B_fl, B_ff), axis = 1)
-BB = np.concatenate((BB_ext_up, BB_ext_low), axis = 0)
+BB = np.concatenate((np.zeros_like(BB_ext_up), BB_ext_low), axis = 0)
 
-#TODO: still to check down from here
 
 # system dynamics: Formation Maneuvering with Constant Leader Velocity
 def form_maneuv_clv_func(p, v, k_p, k_v, Adj):
 	u = np.zeros(np.shape(v))
-	for ii in range(NN-n_f,NN):
+	for ii in range(n_f,NN):
 		N_ii = np.nonzero(Adj[ii])[0] # In-Neighbors of node i
 		for jj in N_ii:
 			pp = p[ii*d:ii*d+d] - p[jj*d:jj*d+d]
@@ -121,6 +125,7 @@ def form_maneuv_clv_func(p, v, k_p, k_v, Adj):
 			pg_star = Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
 			u[ii*d:ii*d+d] -=  pg_star @ (k_p*pp + k_v*vv)
 	return u
+
 
 L_f = L_IN[(NN-n_leaders):, (NN-n_leaders):]
 L_fl = L_IN[(NN-n_leaders):, 0:n_leaders]
@@ -181,14 +186,21 @@ for i, t in enumerate(horizon):
 	p, v = x[:NN*d], x[:-NN*d]
 
 	u = form_maneuv_clv_func(p, v, k_p, k_v, Adj)
-	
+
 	# dx = -L x + B u
 	dx = A@x + B@u
+
+	print("P")
+	print(p)
+	print("B x U")
+	print(B@u)
+	print("A x X")
+	print(A@x)
 
 	print(f"---------\n{dx}\n---------")
 
 	x_out = x + dx
-
+	
 	x = x_out
 
 exit()

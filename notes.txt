@@ -1,0 +1,11 @@
+ROS
+-how to generate B matrix, any tips? wtf going on
+-do we need to generate position and velocity errors? 
+-matrix A has to be L? or not?
+-what is control law?
+
+-try to implement theorem 3 control law into code before asking professor
+
+
+TASK 1
+-show steps, ask where error is?

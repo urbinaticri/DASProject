@@ -26,7 +26,7 @@ v = np.vstack((
 
 # bearing unit vector g_{ij}
 def g(i,j):
-	return (p[j,j+d] - p[i:i+d]) / np.linalg.norm(p[j,j+d] - p[i:i+d])
+	return (p[j*d:j*d+d] - p[i*d:i*d+d]) / np.linalg.norm(p[j*d:j*d+d] - p[i*d:i*d+d])
 
 # orthogonal projection matrix P_{g_{ij}}
 def P(g_ij):

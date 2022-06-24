@@ -233,8 +233,8 @@ for i, t in enumerate(horizon):
 	#print("##################### delta vector ####################")
 	#print(delta_vect)
 
-	state_p = np.concatenate(
-		(np.zeros_like(B_ff), np.identity((NN-n_leaders)*2)), axis=1)
+	state_p = np.concatenate((np.zeros_like(B_ff), \
+							 np.identity((NN-n_leaders)*2)), axis=1)
 	state_v = np.concatenate((-k_p*B_ff, -k_v*B_ff), axis=1)
 	state_matrix = np.concatenate((state_p, state_v), axis=0)
 	#print("##################### state_matrix ####################")
@@ -255,13 +255,12 @@ for i, t in enumerate(horizon):
 	print(delta_evo)
 
 	zero_vect = np.zeros((n_leaders*d,1))
-	dx = np.concatenate((zero_vect, delta_evo[:(NN-n_leaders)*d], \
-						zero_vect, delta_evo[:(NN-n_leaders)*d]), axis=0)
-
-	x_out = x - dx
+	dx = np.vstack((zero_vect, delta_evo[:(NN-n_leaders)*d], \
+						zero_vect, delta_evo[(NN-n_leaders)*d:]))
+	x_out[:,i] = x + dx
 	print("####################### x out ###################")
 	print(x_out)
-	x = x_out
+	x = x_out[:,i]
 
 
 exit()

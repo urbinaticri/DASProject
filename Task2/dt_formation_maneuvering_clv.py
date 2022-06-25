@@ -25,26 +25,40 @@ v = np.vstack((
 ))
 
 # bearing unit vector g_{ij}
-def g(i,j):
-	return (p[j,j+d] - p[i:i+d]) / np.linalg.norm(p[j,j+d] - p[i:i+d])
+def g(p,i,j):
+	return (p[j*d:j*d+d] - p[i*d:i*d+d]) / (np.linalg.norm(p[j*d:j*d+d] - p[i*d:i*d+d]) + 10e-15 )
+
+#print(np.linalg.norm(p[7] - p[1]))
+#print(p[7] - p[1])
+#print(g(0,3))
+#exit()
 
 # orthogonal projection matrix P_{g_{ij}}
 def P(g_ij):
-	return np.identity(d) - g_ij@(g_ij.t)
+	return np.identity(d) - g_ij@(g_ij.T)
 
 # formation: square ex. in fig 2 -> agent 1 bottom-left, order counter-clockwise
 L = 1
-D =sqrt(1)
-g_star = [[	[0,0],		[0,L],		[D,D],		[L,0]],
-	 	  [	[0,L],		[0,0],		[1,L],		[D,D]],
-	 	  [	[D.D],		[L,0],		[0,0], 		[0,L]],
-	 	  [	[L,0]		[D,D],		[0,L]		[0,0]]]
-g_star = np.array(g_star)
+D = np.sqrt(2*L)
+
+#TODO: Set bearing angles instead of positions, leaders must keep position
+
+PP = 	np.array([L,0, L, L, 0, L, 0, 0]).T 
+GG = np.zeros((NN, NN, d), dtype=np.float32)
 Pg_star = np.zeros((d*NN, d*NN))
+
+#TODO: define pg_star based on the couplets of neighbours being currently checked [i,j,:]
 for ii in range(NN):
 	for jj in range(NN):
-		Pg_star[ii:ii+d, jj:jj+d] = P(g_star[ii, jj])
+		g_star = g(PP, ii, jj)
+		GG[ii, jj, :] = g_star
+		Pg_star[ii*d:ii*d+d, jj*d:jj*d+d] = P(g_star)
 
+# TODO: when writing report, use this to demonstrate antisymmetry (it is)
+""" is_GG_antisym = GG+np.transpose(GG, axes= (1, 0, 2))
+print(is_GG_antisym)
+print(GG)
+exit() """
 
 p_ER = 0.9
 
@@ -55,8 +69,10 @@ O_NN = np.ones((NN,1), dtype=int)
 	
 # ER Network generation
 while 1:
-	graph_ER = nx.binomial_graph(NN,p_ER)
-	Adj = nx.adjacency_matrix(graph_ER).toarray()
+	Adj = np.random.binomial(1, p_ER, (NN, NN))
+	Adj = np.logical_or(Adj, Adj.T)
+	Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int)
+
 	# test connectivity
 	test = np.linalg.matrix_power((I_NN+Adj),NN)
 	
@@ -76,9 +92,12 @@ for ii in range(NN):
 
 	sumPg_ik_star = 0
 	for jj in N_ii:
-		B[ii:ii+d, jj:jj+d] = -Pg_star[ii:ii+d, jj:jj+d]
-		sumPg_ik_star += Pg_star[ii:ii+d, jj:jj+d]
-	B[ii:ii+d, ii:ii+d] = sumPg_ik_star
+		B[ii*d:ii*d+d, jj*d:jj*d+d] = -Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
+		sumPg_ik_star += Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
+	B[ii*d:ii*d+d, ii*d:ii*d+d] = sumPg_ik_star
+
+print("################## B matrix #####################")
+print(np.array_str(B, precision=3, suppress_small=True))
 
 # Partitioning B
 n_l = n_leaders
@@ -90,108 +109,188 @@ B_fl = B[d*n_f:d*NN,d*0:d*n_l]	# shape (d*n_f, d*n_l)
 B_ff = B[d*n_f:d*NN,d*n_f:d*NN] # shape (d*n_f, d*n_f) -> if nonsingular then target formation is unique
 
 
+#we will use these for calculating deltas of position and velocities
+pf_star = -np.linalg.inv(B_ff)@B_fl@p[0:n_leaders*d]
+#print(pf_star)
+vf_star = -np.linalg.inv(B_ff)@B_fl@v[0:n_leaders*d]
+#print(vf_star)
+
+
+#TODO: when wrinting report use this to demonstrate determinant of B_ff != 0 => B unique
+#print(np.linalg.det(B_ff))
+
+BB_ext_up = np.concatenate((B_ll, B_lf), axis = 1)
+BB_ext_low  = np.concatenate((B_fl, B_ff), axis = 1)
+BB = np.concatenate((np.zeros_like(BB_ext_up), BB_ext_low), axis = 0)
+
+
 # system dynamics: Formation Maneuvering with Constant Leader Velocity
 def form_maneuv_clv_func(p, v, k_p, k_v, Adj):
-	u = np.zeros(np.size(v))
-	for ii in range(NN):
-		N_ii = np.where(Adj[:,ii]>0)[0]
-		index_ii =  ii*d + np.arange(d)
+	u = np.zeros(np.shape(v))
+	for ii in range(n_f,NN):
+		N_ii = np.nonzero(Adj[ii])[0] # In-Neighbors of node i
 		for jj in N_ii:
-			index_jj = jj*d + np.arange(d)
-			pp = p[index_ii] - p[index_jj]
-			vv = v[index_ii] - v[index_jj]
-			u -= P(g_star[index_ii, index_jj]) * (k_p*pp + k_v*vv)
+			pp = p[ii*d:ii*d+d] - p[jj*d:jj*d+d]
+			vv = v[ii*d:ii*d+d] - v[jj*d:jj*d+d]
+			pg_star = Pg_star[ii*d:ii*d+d, jj*d:jj*d+d]
+			u[ii*d:ii*d+d] -=  pg_star @ (k_p*pp + k_v*vv)
 	return u
 
 
-##############################################
-# QUI SOTTO CODICE DEL PROF ANCORA DA CAPIRE #
-##############################################
-
-
-L_f = L_IN[0:NN-n_leaders, 0:NN-n_leaders]
-L_fl = L_IN[0:NN-n_leaders, NN-n_leaders:]
-
-################
-# leaders dynamics
+L_f = L_IN[(NN-n_leaders):, (NN-n_leaders):]
+L_fl = L_IN[(NN-n_leaders):, 0:n_leaders]
 LL = np.concatenate((L_f, L_fl), axis = 1)
-LL = np.concatenate((LL, np.zeros((n_leaders,NN))), axis = 0)
+LL = np.concatenate((np.zeros((n_leaders,NN)), LL), axis = 0)
 
 # replicate for each dimension
 LL_kron = np.kron(LL,I_nx)
 
 x_init = np.vstack((
-	np.ones((d*n_leaders,1)),
-	np.zeros((d*(NN-n_leaders),1))
+	p,
+	v
 ))
-x_init += 5*np.random.rand(d*NN,1)
-
-BB_kron = np.zeros((NN*d, n_leaders*d))
-BB_kron[(NN-n_leaders)*d:,:] = np.identity(d*n_leaders, dtype=int)
-
-A = -LL_kron
-B = BB_kron
-C = np.identity(np.size(LL_kron,axis = 0)) # to comply with StateSpace syntax
 
 ################
-## followers integral Action
+## followers ext with integral Action
 
-k_i = 4
-K_I = - k_i*I_NN_nx
+k_i = 0.4
+K_I = -k_i*I_NN_nx
 
 LL_ext_up = np.concatenate((LL_kron, K_I), axis = 1)
 LL_ext_low = np.concatenate((LL_kron, np.zeros(LL_kron.shape)), axis = 1)
 LL_ext = np.concatenate((LL_ext_up, LL_ext_low), axis = 0)
 
-# include integral state
-x_init = np.concatenate((x_init,np.zeros((d*NN,1))))
-BB_kron = np.concatenate((BB_kron, np.zeros((NN*d,n_leaders*d))), axis = 0)
+BB = np.concatenate((np.zeros((NN*d,NN*d)), BB), axis = 0)
 
 A = -LL_ext
-B = BB_kron
+B = BB
 C = np.identity(np.size(LL_ext,axis = 0)) # to comply with StateSpace syntax
 
 ################
-
-sys = control.StateSpace(A,B,C,0) # dx = -L x + B u
-
 dt = 0.01
 Tmax = 10.0
 horizon = np.arange(0.0, Tmax, dt)
 
-# Leaders input
-velocity = 0
-u = velocity*np.ones((d*n_leaders, len(horizon)))
+sys = control.StateSpace(A,B,C,0) # dx = -L x + B u
 
-# da sostituire con formation function
-#(T, yout, xout) = control.forced_response(sys, X0=x_init, U=u, T=horizon, return_x=True)
+k_p = 0.5
+k_v = 0.5
 
-# numerical integration
-fc_dynamics = lambda t,x: form_func(t, x, distances, Adj, d)
+""" x_out = np.zeros((x_init.shape[0], len(horizon)))
+x = x_init
+for i, t in enumerate(horizon):
+	p, v = x[:NN*d], x[:-NN*d]
 
-# Solve an initial value problem for a system of ODEs
-res = solve_ivp(fc_dynamics,		# function to integrate
-				t_span = [0, Tmax],	# time limits # t_span = [0, Tmax]
-				y0 = x_init			# initial condition
-				)
-xout = res.y
-T = res.t
+	u = form_maneuv_clv_func(p, v, k_p, k_v, Adj)
+	print(u)
+	print(len(u))
 
+	(T, yout, xout) = control.forced_response(sys, X0=x, U=u, T=None, return_x=True)
+
+	x_out[i] = xout
+	x = xout """
+#########################
+#try verbose approach to state evolution, creates the state matrix starting from 
+#the positon and velocity evolution matrices
+
+""" delta_p = p[(NN-n_leaders)*d:] - pf_star
+delta_v = v[(NN-n_leaders)*d:] - vf_star
+delta_vect = np.concatenate((delta_p, delta_v), axis=0)
+print("##################### delta vector ####################")
+print(delta_vect)
+
+state_p = np.concatenate((np.zeros_like(B_ff), np.identity((NN-n_leaders)*2)), axis = 1)
+state_v = np.concatenate((-k_p*B_ff, -k_v*B_ff), axis = 1)
+state_matrix = np.concatenate((state_p, state_v), axis = 0)
+print("##################### state_matrix ####################")
+print(state_matrix)
+
+input_p = np.zeros(((NN-n_leaders)*d, (NN-n_leaders)*d))
+input_v = -np.linalg.inv(B_ff)@B_fl
+input_matrix = np.concatenate((input_p, input_v), axis=0)
+print("###################### input matrix #########################")
+print(input_matrix)
+
+u = -k_p*B_ff@delta_p -k_v*B_ff@delta_v
+#u = np.concatenate((np.zeros(((NN-n_leaders)*d, 1)), u), axis = 0)
+print(u)
+
+delta_evo = state_matrix@delta_vect + input_matrix@u
+print("###################### delta at time t+1 #########################")
+print(delta_evo) """
+
+#start iterations
+
+x_out = np.zeros((x_init.shape[0], len(horizon)))
+x = x_init
+for i, t in enumerate(horizon):
+
+	p, v = x[:NN*d], x[:-NN*d]
+
+	delta_p = p[(NN-n_leaders)*d:] - pf_star
+	delta_v = v[(NN-n_leaders)*d:] - vf_star
+	delta_vect = np.concatenate((delta_p, delta_v), axis=0)
+	#print("##################### delta vector ####################")
+	#print(delta_vect)
+
+	state_p = np.concatenate((np.zeros_like(B_ff), \
+							 np.identity((NN-n_leaders)*2)), axis=1)
+	state_v = np.concatenate((-k_p*B_ff, -k_v*B_ff), axis=1)
+	state_matrix = np.concatenate((state_p, state_v), axis=0)
+	#print("##################### state_matrix ####################")
+	#print(state_matrix)
+
+	input_p = np.zeros(((NN-n_leaders)*d, (NN-n_leaders)*d))
+	input_v = -np.linalg.inv(B_ff)@B_fl
+	input_matrix = np.concatenate((input_p, input_v), axis=0)
+	#print("###################### input matrix #########################")
+	#print(input_matrix)
+
+	u = -k_p*B_ff@delta_p - k_v*B_ff@delta_v
+	print("############ control signal ###################")
+	print(u)
+
+	delta_evo = state_matrix@delta_vect #+ input_matrix@u
+	print(f"###################### delta at time t = {t} #########################")
+	print(delta_evo)
+
+	zero_vect = np.zeros((n_leaders*d,1))
+	dx = np.vstack((zero_vect, delta_evo[:(NN-n_leaders)*d], \
+						zero_vect, delta_evo[(NN-n_leaders)*d:]))
+	x_out[:,i] = x + dx
+	print("####################### x out ###################")
+	print(x_out)
+	x = x_out[:,i]
+
+
+exit()
+
+#########################
+x_out = np.zeros((x_init.shape[0], len(horizon)))
+x = x_init
+for i, t in enumerate(horizon):
+	p, v = x[:NN*d], x[:-NN*d]
+
+	u = form_maneuv_clv_func(p, v, k_p, k_v, Adj)
+
+	# dx = -L x + B u
+	dx = A@x + B@u
+
+	print("P")
+	print(p)
+	print("B x U")
+	print(B@u)
+	print("A x X")
+	print(A@x)
+
+	print(f"---------\n{dx}\n---------")
+
+	x_out = x + dx
+	
+	x = x_out
+
+exit()
 # Generate Figure
 plt.figure(1)
-for x in xout:
-	plt.plot(T, x)
-
-# Plot mean values
-# plt.plot(T, np.repeat(x0_mean, len(T), axis = 0),  '--', linewidth=3)
-
-plt.title("Evolution of the local estimates")
-plt.xlabel("$t$")
-plt.ylabel("$x_i^t$")
-
-if 1: # animation (0 to avoid animation)
-	if d == 2: 
-		plt.figure(2)
-		animation(xout,NN,d,n_leaders, horizon = T, dt=10)
-
-plt.show()
+for x in x_out:
+	plt.plot(horizon, x)

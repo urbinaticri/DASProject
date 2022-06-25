@@ -33,6 +33,7 @@ def g(p,i,j):
 #print(g(0,3))
 #exit()
 
+
 # orthogonal projection matrix P_{g_{ij}}
 def P(g_ij):
 	return np.identity(d) - g_ij@(g_ij.T)

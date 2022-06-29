@@ -8,7 +8,7 @@ warnings.filterwarnings("ignore")
 
 ###############################################################################
 # Useful constants
-MAXITERS = 1 + 1
+MAXITERS = 20 + 1
 NN = 10  # Agents
 T = 5   # Layers
 chosen_class = 4    # Class to predict
@@ -246,7 +246,8 @@ for tt in range(MAXITERS):  # For each iteration
 
             # Backward propagation            # \nabla f_i(x_{i,t})
             Delta_u[ii] += backward_pass(XX, UU[ii], llambdaT) # Sum weigth errors on the full batch of images
-
+            
+        print(f"agent: {ii} cost: {totalCost}")
         # Store the Loss Value across Iterations (the sum of costs of all nodes)
         J[tt] += totalCost
 
@@ -303,3 +304,7 @@ weights = [1 - test_labels.count(1) / len(test_labels) if i == 1 else 1 -
            test_labels.count(0) / len(test_labels) for i in test_labels]
 print(
     f'accuracy with weights: {accuracy_score(test_labels, y_pred, sample_weight=weights):.4f}')
+
+#TO-DO: plot consenus weight for each agent
+#TO-DO: plot single cost of each agent over time
+#TO-DO: try MSE 

@@ -42,6 +42,13 @@ def P(g_ij):
 	g_ij = g_ij.reshape((-1, 1)) #here reshape because from row array i.e. [1,0] we want col array i.e. [[1], [0]] 
 	return np.identity(d) - g_ij@(g_ij.T)
 
+# formation: square ex. in fig 2 -> agent 1 bottom-left, order counter-clockwise
+L = 1
+D = np.sqrt(2*L)
+
+#TODO: Set bearing angles instead of positions, leaders must keep position
+
+PP = np.array([L,0, L, L, 0, L, 0, 0]).T 
 GG = np.zeros((NN, NN, d), dtype=np.float32)
 Pg_star = np.zeros((NN, NN, d, d), dtype=np.float32)
 

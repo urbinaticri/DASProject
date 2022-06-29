@@ -12,11 +12,16 @@ NN = 4 # number of agents
 n_leaders = 2 # number of leaders
 d = 2 # dimension of positions and velocities
 
+# formation: square ex. in fig 2 -> agent 1 bottom-left, order counter-clockwise
+L = 1
+D = np.sqrt(2*L)
+
 # positions
-p = np.vstack((
-	np.zeros((d*n_leaders,1)),
-	np.zeros((d*(NN-n_leaders),1))
-)) + 5*np.random.rand(d*NN,1)
+p = np.array([[L, 0, L, L, 5, -4, 2, 0.5]]).T
+""" p = np.vstack((
+	np.array([[L,0, L, L]]).T,
+	np.zeros((d*(NN-n_leaders),1) + 5*np.random.rand(d*(NN-n_leaders),1))
+)) """
 
 # velocities
 v = np.vstack((
@@ -38,9 +43,6 @@ def g(p,i,j):
 def P(g_ij):
 	return np.identity(d) - g_ij@(g_ij.T)
 
-# formation: square ex. in fig 2 -> agent 1 bottom-left, order counter-clockwise
-L = 1
-D = np.sqrt(2*L)
 
 #TODO: Set bearing angles instead of positions, leaders must keep position
 

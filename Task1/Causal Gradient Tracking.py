@@ -8,8 +8,11 @@ warnings.filterwarnings("ignore")
 
 ###############################################################################
 # Useful constants
-MAXITERS = 100 + 1
-NN = 5
+MAXITERS = 1 + 1
+NN = 10  # Agents
+T = 5   # Layers
+chosen_class = 4    # Class to predict
+n_samples = NN*20    # Number of training samples
 
 ###############################################################################
 # Generate Network Binomial Graph
@@ -64,27 +67,21 @@ print('Check Stochasticity:\n row: {} \n column {}\n'.format(
 FF = np.zeros((MAXITERS))
 
 # Activation Function
-
-
 def sigmoid_fn(xi):
     return 1/(1+np.exp(-xi))
 
 # Derivative of Activation Function
-
-
 def sigmoid_fn_derivative(xi):
     return sigmoid_fn(xi)*(1-sigmoid_fn(xi))
 
 # Inference: x_tp = f(xt,ut)
-
-
 def inference_dynamics(xt, ut):
     """
     input: 
-                            xt current state
-                            ut current input
+                            xt current state    i.e. output of the layer L-1
+                            ut current input    i.e. weights of the layer L
     output: 
-                            xtp next state
+                            xtp next state      i.e. i.e. output of the layer L
     """
     xtp = np.zeros(d)
     for ell in range(d):
@@ -93,15 +90,14 @@ def inference_dynamics(xt, ut):
 
     return xtp
 
-
 # Forward Propagation
 def forward_pass(uu, x0):
     """
     input: 
-                            uu input trajectory: u[0],u[1],..., u[T-1]
-                            x0 initial condition
+                            uu input trajectory: u[0],u[1],..., u[T-1]  i.e. weights of the neural network
+                            x0 initial condition                        i.e. input image
     output: 
-                            xx state trajectory: x[1],x[2],..., x[T]
+                            xx state trajectory: x[1],x[2],..., x[T]    i.e. output of the neural network
     """
     xx = np.zeros((T, d))
     xx[0] = x0
@@ -114,8 +110,6 @@ def forward_pass(uu, x0):
 # Adjoint dynamics:
 #   state:    lambda_t = A.T lambda_tp
 #   output:   deltau_t = B.T lambda_tp
-
-
 def adjoint_dynamics(ltp, xt, ut):
     """
       input: 
@@ -146,8 +140,6 @@ def adjoint_dynamics(ltp, xt, ut):
     return lt, Delta_ut
 
 # Backward Propagation
-
-
 def backward_pass(xx, uu, llambdaT):
     """
       input: 
@@ -168,32 +160,28 @@ def backward_pass(xx, uu, llambdaT):
 
     return Delta_u
 
-
-###############################################################################
-
+# Mean-Squared Error - Loss Function
 def MSE(y_pred, y_true):
     mse = (y_pred - y_true)**2
     mse_d = 2*(y_pred - y_true)
     return mse, mse_d
 
-
+# Bunary Cross-Entropy - Loss Function
 def BCE(y_pred, y_true):
-    #print(f'{y_pred:.2f}, {y_true:.2f}')
-    bce = - (y_true * np.log(y_pred + 1e-15) +
-             (1 - y_true) * np.log(1 - y_pred + 1e-15))
-    # (y_true / y_pred) - ((1 - y_true) / (1 - y_pred))
+    bce = - (y_true * np.log(y_pred + 1e-15) + (1 - y_true) * np.log(1 - y_pred + 1e-15))
     bce_d = - (y_true - y_pred) / (y_pred*(1 - y_pred) + 1e-15)
     return bce, bce_d
 
-
-chosen_class = 4
-n_samples = NN*5
+###############################################################################
+# Dataset preparation
 
 (train_D, train_y), (test_D, test_y) = mnist.load_data()
 train_D, test_D = train_D/255.0, test_D/255.0
 #print(train_D.shape, test_D.shape)
+
 train_D = train_D.reshape((train_D.shape[0], 28 * 28))
 test_D = test_D.reshape((test_D.shape[0], 28 * 28))
+
 train_y = [1 if y == chosen_class else 0 for y in train_y]
 test_y =  [1 if y == chosen_class else 0 for y in test_y]
 
@@ -203,12 +191,12 @@ np.random.shuffle(idx)
 train_D = np.array([train_D[i] for i in idx])
 train_y = np.array([train_y[i] for i in idx])
 
-# Without sampling
+# Without sampling: the probability distribution of chosen_class is 1/10
 # n = n_samples//NN # Number of samples per node
 # data_point = np.array([train_D[n*i: n*i+n] for i in range(NN)])
 # label_point = np.array([train_y[n*i: n*i+n] for i in range(NN)])
 
-# With pos/neg sampling
+# With pos/neg sampling: the proability distribution of chosen_class is 1/2
 pos_idx = np.where(train_y == 1)[0][:n_samples//2]
 neg_idx = np.where(train_y == 0)[0][:n_samples-n_samples//2]
 
@@ -220,12 +208,12 @@ indices = indices.reshape((NN, n))
 data_point = train_D[indices]
 label_point = train_y[indices]
 
-print(label_point)
+print(f"Training label points:\n{label_point}\n")
 
-T = 5  # Layers
-d = 28*28  #  Number of neurons in each layer. Same numbers for all the layers
+# Training
 
-stepsize = 1e-4  #  learning rate
+d = 28*28           # Number of neurons in each layer. Same numbers for all the layers
+stepsize = 1e-4     # Learning rate
 J = np.zeros((MAXITERS))  # Cost
 
 #  U_t : U_0 Initial Weights / Initial Input Trajectory initializer randomly
@@ -238,6 +226,7 @@ Delta_u = np.zeros_like(UU)
 ZZ = np.zeros((NN, T-1, d, d+1))		# z_t: z_0 Initialized at 0
 ZZp = np.zeros_like(ZZ)					# z_{t+1}
 
+print(f"Training...")
 for tt in range(MAXITERS):  # For each iteration
 
     for ii in range(NN):  # For each node
@@ -251,19 +240,18 @@ for tt in range(MAXITERS):  # For each iteration
             # Forward pass
             XX = forward_pass(UU[ii], image)  # f_i(x_i,t)
             # Cost function
-            cost, cost_d = BCE(XX[-1, -1], label)
+            cost, cost_d = BCE(XX[-1,-1], label)
             totalCost += cost
             llambdaT = cost_d
 
-            # Backward propagation
-            # \nabla f_i(x_{i,t})
-            Delta_u[ii] += backward_pass(XX, UU[ii], llambdaT)
+            # Backward propagation            # \nabla f_i(x_{i,t})
+            Delta_u[ii] += backward_pass(XX, UU[ii], llambdaT) # Sum weigth errors on the full batch of images
 
         # Store the Loss Value across Iterations (the sum of costs of all nodes)
-        J[tt] += totalCost/n
+        J[tt] += totalCost
 
     for ii in range(NN):  # For each node
-        Nii = np.nonzero(Adj[ii])[0]
+        Nii = np.nonzero(Adj[ii])[0] # Self loop is not present
 
         # Weights update
         VV[ii] = WW[ii, ii]*UU[ii]
@@ -281,19 +269,20 @@ for tt in range(MAXITERS):  # For each iteration
     UU = UUp
     ZZ = ZZp
 
-    if (tt % 5) == 0:
-        print(f"Iteration {tt:3d} - loss: {J[tt]/NN:4.3f}", end="\n")
+    if (tt % 1) == 0:
+        print(f"Iteration {tt:3d} - loss: {J[tt]:4.3f}", end="\n")
 
-plt.figure()
+# Evolution of cost function
+fig = plt.figure()
 plt.semilogy(np.arange(MAXITERS), J, linestyle='-', linewidth=2)
 plt.xlabel(r"iterations $t$")
 plt.ylabel(r"cost")
-plt.title(
-    r"Evolution of the cost error: $\min \sum_{i=1}^N \sum_{k=1}^\mathcal{I} J(\phi(u;x_i^k);y_i^k)$")
+plt.title(r"Evolution of the cost error: $\min \sum_{i=1}^N \sum_{k=1}^\mathcal{I} J(\phi(u;x_i^k);y_i^k)$")
 plt.grid()
 plt.show()
+#fig.savefig('./imgs/Gradient Tracking.png')
 
-# Evaluation on test
+# Evaluation on test set
 y_pred = []
 
 idx = np.argsort(np.random.random(test_D.shape[0]))

@@ -44,7 +44,7 @@ D = np.sqrt(2*L)
 
 #TODO: Set bearing angles instead of positions, leaders must keep position
 
-PP = 	np.array([L,0, L, L, 0, L, 0, 0]).T 
+PP = np.array([L,0, L, L, 0, L, 0, 0]).T 
 GG = np.zeros((NN, NN, d), dtype=np.float32)
 Pg_star = np.zeros((d*NN, d*NN))
 
@@ -54,6 +54,10 @@ for ii in range(NN):
 		g_star = g(PP, ii, jj)
 		GG[ii, jj, :] = g_star
 		Pg_star[ii*d:ii*d+d, jj*d:jj*d+d] = P(g_star)
+
+""" print(np.array_str(Pg_star, precision=5, suppress_small=True))
+print(np.array_str(GG, precision=5, suppress_small=True))
+exit() """
 
 # TODO: when writing report, use this to demonstrate antisymmetry (it is)
 """ is_GG_antisym = GG+np.transpose(GG, axes= (1, 0, 2))
@@ -163,8 +167,20 @@ LL_ext = np.concatenate((LL_ext_up, LL_ext_low), axis = 0)
 
 BB = np.concatenate((np.zeros((NN*d,NN*d)), BB), axis = 0)
 
-A = -LL_ext
-B = BB
+#create zeros and one matrices used to build A and B matrices
+zero_mff = np.zeros((NN*d, NN*d))
+zero_mfl = np.zeros((NN*d, NN*d))
+zero_mlf = np.zeros((NN*d, NN*d))
+zero_mll = np.zeros((NN*d, NN*d))
+one_mff = np.eye(NN*d)
+
+
+A_top = np.concatenate((zero_mll, zero_mff), axis = 1)
+A_bottom = np.concatenate((zero_mfl, one_mff), axis = 1)
+A= np.concatenate((A_top, A_bottom), axis = 0)
+print(A)
+B = np.concatenate((zero_mll, one_mff), axis = 0)
+print(B)
 C = np.identity(np.size(LL_ext,axis = 0)) # to comply with StateSpace syntax
 
 ################
@@ -194,32 +210,7 @@ for i, t in enumerate(horizon):
 #try verbose approach to state evolution, creates the state matrix starting from 
 #the positon and velocity evolution matrices
 
-""" delta_p = p[(NN-n_leaders)*d:] - pf_star
-delta_v = v[(NN-n_leaders)*d:] - vf_star
-delta_vect = np.concatenate((delta_p, delta_v), axis=0)
-print("##################### delta vector ####################")
-print(delta_vect)
-
-state_p = np.concatenate((np.zeros_like(B_ff), np.identity((NN-n_leaders)*2)), axis = 1)
-state_v = np.concatenate((-k_p*B_ff, -k_v*B_ff), axis = 1)
-state_matrix = np.concatenate((state_p, state_v), axis = 0)
-print("##################### state_matrix ####################")
-print(state_matrix)
-
-input_p = np.zeros(((NN-n_leaders)*d, (NN-n_leaders)*d))
-input_v = -np.linalg.inv(B_ff)@B_fl
-input_matrix = np.concatenate((input_p, input_v), axis=0)
-print("###################### input matrix #########################")
-print(input_matrix)
-
-u = -k_p*B_ff@delta_p -k_v*B_ff@delta_v
-#u = np.concatenate((np.zeros(((NN-n_leaders)*d, 1)), u), axis = 0)
-print(u)
-
-delta_evo = state_matrix@delta_vect + input_matrix@u
-print("###################### delta at time t+1 #########################")
-print(delta_evo) """
-
+"""
 #start iterations
 
 x_out = np.zeros((x_init.shape[0], len(horizon)))
@@ -262,9 +253,7 @@ for i, t in enumerate(horizon):
 	print("####################### x out ###################")
 	print(x_out)
 	x = x_out[:,i]
-
-
-exit()
+"""
 
 #########################
 x_out = np.zeros((x_init.shape[0], len(horizon)))
@@ -273,9 +262,16 @@ for i, t in enumerate(horizon):
 	p, v = x[:NN*d], x[:-NN*d]
 
 	u = form_maneuv_clv_func(p, v, k_p, k_v, Adj)
-
-	# dx = -L x + B u
+	print(u)
 	dx = A@x + B@u
+
+	""" dv = u
+	dp = v
+
+	v += dv
+	p += dp
+
+	x = np.concatenate((p,v), axis=0) """
 
 	print("P")
 	print(p)

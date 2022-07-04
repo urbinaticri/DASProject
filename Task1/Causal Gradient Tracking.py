@@ -8,7 +8,7 @@ warnings.filterwarnings("ignore")
 
 ###############################################################################
 # Useful constants
-MAXITERS = 15 + 1
+MAXITERS = 50 + 1
 NN = 5  # Agents
 T = 3   # Layers
 chosen_class = 4    # Class to predict

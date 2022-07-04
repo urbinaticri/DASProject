@@ -1,0 +1,73 @@
+Check Stochasticity:
+ row: [1. 1. 1. 1. 1.]
+ column [1. 1. 1. 1. 1.]
+
+[[0.3951254  0.15149444 0.15149444 0.13170847 0.17017726]
+ [0.15149444 0.52275834 0.17425278 0.15149444 0.        ]
+ [0.15149444 0.17425278 0.52275834 0.15149444 0.        ]
+ [0.13170847 0.15149444 0.15149444 0.3951254  0.17017726]
+ [0.17017726 0.         0.         0.17017726 0.65964549]]
+Training label points:
+[[1 0 1 0 1 0 1 0 1 1 0 1 0 0 0 0 1 0 0 1]
+ [1 1 1 1 0 0 0 0 1 1 0 0 0 1 0 0 1 0 1 0]
+ [0 0 1 0 1 1 0 1 1 0 1 0 1 1 1 1 0 0 1 1]
+ [1 1 1 0 1 1 0 0 0 1 1 1 0 1 1 1 0 0 0 1]
+ [1 0 1 1 0 0 1 0 0 0 0 0 1 0 1 0 0 1 1 0]]
+
+Training...
+Iteration   0 - loss: 41.295
+Iteration   1 - loss: 34.858
+Iteration   2 - loss: 32.387
+Iteration   3 - loss: 35.606
+Iteration   4 - loss: 32.535
+Iteration   5 - loss: 29.393
+Iteration   6 - loss: 30.758
+Iteration   7 - loss: 29.920
+Iteration   8 - loss: 29.455
+Iteration   9 - loss: 28.151
+Iteration  10 - loss: 27.959
+Iteration  11 - loss: 26.703
+Iteration  12 - loss: 26.028
+Iteration  13 - loss: 26.502
+Iteration  14 - loss: 24.957
+Iteration  15 - loss: 26.100
+Iteration  16 - loss: 23.465
+Iteration  17 - loss: 24.937
+Iteration  18 - loss: 22.729
+Iteration  19 - loss: 24.129
+Iteration  20 - loss: 21.572
+Iteration  21 - loss: 21.868
+Iteration  22 - loss: 22.344
+Iteration  23 - loss: 21.906
+Iteration  24 - loss: 21.956
+Iteration  25 - loss: 19.412
+Iteration  26 - loss: 19.990
+Iteration  27 - loss: 19.283
+Iteration  28 - loss: 20.435
+Iteration  29 - loss: 17.048
+Iteration  30 - loss: 15.682
+Iteration  31 - loss: 14.574
+Iteration  32 - loss: 16.678
+Iteration  33 - loss: 13.181
+Iteration  34 - loss: 12.820
+Iteration  35 - loss: 11.823
+Iteration  36 - loss: 11.851
+Iteration  37 - loss: 10.531
+Iteration  38 - loss: 9.290
+Iteration  39 - loss: 8.802
+Iteration  40 - loss: 7.700
+Iteration  41 - loss: 7.909
+Iteration  42 - loss: 7.250
+Iteration  43 - loss: 7.282
+Iteration  44 - loss: 6.398
+Iteration  45 - loss: 6.836
+Iteration  46 - loss: 6.141
+Iteration  47 - loss: 6.453
+Iteration  48 - loss: 5.594
+Iteration  49 - loss: 6.183
+Iteration  50 - loss: 5.334
+[1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1]
+[0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
+
+accuracy: 0.7600
+accuracy with weights: 0.8681

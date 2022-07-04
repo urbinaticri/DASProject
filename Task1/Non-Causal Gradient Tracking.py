@@ -1,26 +1,30 @@
-from cmath import log
 import numpy as np
-
-
 import matplotlib.pyplot as plt
 from keras.datasets import mnist
+from sklearn.metrics import accuracy_score
+
+import warnings
+warnings.filterwarnings("ignore")
 
 ###############################################################################
 # Useful constants
-MAXITERS = 20 +1  # Explicit Casting
-NN = 10
+MAXITERS = 20 + 1
+NN = 5  # Agents
+T = 4   # Layers
+chosen_class = 4    # Class to predict
+n_samples = NN*40   # Number of training samples
 
 ###############################################################################
 # Generate Network Binomial Graph
-p_ER = 0.3
-I_NN = np.eye(NN) # np.identity
+p_ER = 0.9
+I_NN = np.eye(NN)  # np.identity
 while 1:
-	Adj = np.random.binomial(1,p_ER, (NN,NN))
-	Adj = np.logical_or(Adj,Adj.T)
+	Adj = np.random.binomial(1, p_ER, (NN, NN))
+	Adj = np.logical_or(Adj, Adj.T)
 	Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int)
 
 	test = np.linalg.matrix_power(I_NN+Adj, NN)
-	if np.all(test>0):
+	if np.all(test > 0):
 		break
 
 ###############################################################################
@@ -32,10 +36,14 @@ ONES = np.ones((NN,NN))
 ZEROS = np.zeros((NN,NN))
 WW = np.maximum(WW,0*ONES)
 while any(abs(np.sum(WW,axis=1)-1) > threshold):
-	WW = WW/(WW@ONES) # row
-	# WW = WW/(ONES@WW) # col
+	WW = WW/(WW@ONES) # Row-stochasticity
+	WW = WW/(ONES@WW) # Col-stochasticity
 	WW = np.maximum(WW,0*ONES)
 
+print('Check Stochasticity:\n row: {} \n column {}\n'.format(
+	np.sum(WW,axis=1),
+	np.sum(WW,axis=0)
+))
 ###############################################################################
 
 FF = np.zeros((MAXITERS))
@@ -49,196 +57,257 @@ def sigmoid_fn_derivative(xi):
 	return sigmoid_fn(xi)*(1-sigmoid_fn(xi))
 
 # Inference: x_tp = f(xt,ut)
-def inference_dynamics(xt,ut):
+def inference_dynamics(xt, ut):
 	"""
 	input: 
-				xt current state
-				ut current input
+							xt current state    i.e. output of the layer L-1
+							ut current input    i.e. weights of the layer L
 	output: 
-				xtp next state
+							xtp next state      i.e. i.e. output of the layer L
 	"""
 	xtp = np.zeros(d)
 	for ell in range(d):
-		temp = xt@ut[ell,1:] + ut[ell,0] # including the bias
-		xtp[ell] = sigmoid_fn( temp ) # x' * u_ell
-	
+		temp = xt@ut[ell, 1:] + ut[ell, 0]  # including the bias
+		xtp[ell] = sigmoid_fn(temp)  # x' * u_ell
+
 	return xtp
 
-
 # Forward Propagation
-def forward_pass(uu,x0):
+def forward_pass(uu, x0):
 	"""
 	input: 
-				uu input trajectory: u[0],u[1],..., u[T-1]
-				x0 initial condition
+							uu input trajectory: u[0],u[1],..., u[T-1]  i.e. weights of the neural network
+							x0 initial condition                        i.e. input image
 	output: 
-				xx state trajectory: x[1],x[2],..., x[T]
+							xx state trajectory: x[1],x[2],..., x[T]    i.e. output of the neural network
 	"""
 	xx = np.zeros((T, d))
 	xx[0] = x0
 
 	for t in range(T-1):
-		xx[t+1] = inference_dynamics(xx[t],uu[t]) # x^+ = f(x,u)
+		xx[t+1] = inference_dynamics(xx[t], uu[t])  #  x^+ = f(x,u)
 
 	return xx
 
-# Adjoint dynamics: 
+# Adjoint dynamics:
 #   state:    lambda_t = A.T lambda_tp
 #   output:   deltau_t = B.T lambda_tp
 def adjoint_dynamics(ltp,xt,ut):
-  """
-    input: 
-              llambda_tp current costate
-              xt current state
-              ut current input
-    output: 
-              llambda_t next costate
-              delta_ut loss gradient wrt u_t
-  """
-  df_dx = np.zeros((d,d))
+	"""
+		input: 
+				llambda_tp current costate
+				xt current state
+				ut current input
+		output: 
+				llambda_t next costate
+				delta_ut loss gradient wrt u_t
+	"""
+	df_dx = np.zeros((d,d))
+	# df_du = np.zeros((d,(d+1)*d))
+	
+	Delta_ut = np.zeros((d,d+1))
 
-  # df_du = np.zeros((d,(d+1)*d))
-  Delta_ut = np.zeros((d,d+1))
+	for j in range(d):
+		dsigma_j = sigmoid_fn_derivative(xt@ut[j,1:] + ut[j,0]) 
 
-  for j in range(d):
-    dsigma_j = sigmoid_fn_derivative(xt@ut[j,1:] + ut[j,0]) 
+		df_dx[:,j] = ut[j,1:]*dsigma_j
+		# df_du[j, XX] = dsigma_j*np.hstack([1,xt])
+		
+		# B'@ltp
+		Delta_ut[j,0] = ltp[j]*dsigma_j
+		Delta_ut[j,1:] = xt*ltp[j]*dsigma_j
+	
+	lt = df_dx@ltp # A'@ltp
+	# Delta_ut = df_du@ltp
 
-    df_dx[:,j] = ut[j,1:]*dsigma_j
-    # df_du[j, XX] = dsigma_j*np.hstack([1,xt])
-    
-    # B'@ltp
-    Delta_ut[j,0] = ltp[j]*dsigma_j
-    Delta_ut[j,1:] = xt*ltp[j]*dsigma_j
-  
-  lt = df_dx@ltp # A'@ltp
-  # Delta_ut = df_du@ltp
-
-  return lt, Delta_ut
+	return lt, Delta_ut
 
 # Backward Propagation
-def backward_pass(xx,uu,llambdaT):
-  """
-    input: 
-              xx state trajectory: x[1],x[2],..., x[T]
-              uu input trajectory: u[0],u[1],..., u[T-1]
-              llambdaT terminal condition
-    output: 
-              llambda costate trajectory
-              delta_u costate output, i.e., the loss gradient
-  """
-  llambda = np.zeros((T,d))
-  llambda[-1] = llambdaT
+def backward_pass(xx, uu, llambdaT):
+	"""
+	  input: 
+				xx state trajectory: x[1],x[2],..., x[T]
+				uu input trajectory: u[0],u[1],..., u[T-1]
+				llambdaT terminal condition
+	  output: 
+				llambda costate trajectory
+				delta_u costate output, i.e., the loss gradient
+	"""
+	llambda = np.zeros((T, d))
+	llambda[-1] = llambdaT
 
-  Delta_u = np.zeros((T-1,d,d+1))
+	Delta_u = np.zeros((T-1, d, d+1))
 
-  for t in reversed(range(T-1)): # T-1,T-2,...,1,0
-    llambda[t], Delta_u[t] = adjoint_dynamics(llambda[t+1],xx[t],uu[t])
+	for t in reversed(range(T-1)):  #  T-1,T-2,...,1,0
+		llambda[t], Delta_u[t] = adjoint_dynamics(llambda[t+1], xx[t], uu[t])
 
-  return Delta_u
+	return Delta_u
 
+# Mean-Squared Error - Loss Function
+def MSE(y_pred, y_true):
+	mse = (y_pred - y_true)**2
+	mse_d = 2*(y_pred - y_true)
+	return mse, mse_d
+
+# Bunary Cross-Entropy - Loss Function
+def BCE(y_pred, y_true):
+	bce = - (y_true * np.log(y_pred + 1e-15) + (1 - y_true) * np.log(1 - y_pred + 1e-15))
+	bce_d = - (y_true - y_pred) / (y_pred*(1 - y_pred) + 1e-15)
+	return bce, bce_d
 
 ###############################################################################
-# GO!
-
-chosen_class = 4
-n_samples = 100
+# Dataset preparation
 
 (train_D, train_y), (test_D, test_y) = mnist.load_data()
-train_D , test_D = train_D/255.0 , test_D/255.0
-train_D = train_D.reshape((60000, 28 * 28))
+train_D, test_D = train_D/255.0, test_D/255.0
+#print(train_D.shape, test_D.shape)
+
+train_D = train_D.reshape((train_D.shape[0], 28 * 28))
+test_D = test_D.reshape((test_D.shape[0], 28 * 28))
 
 train_y = [1 if y == chosen_class else 0 for y in train_y]
-test_y = [1 if y == chosen_class else 0 for y in test_y]
+test_y =  [1 if y == chosen_class else 0 for y in test_y]
 
-idx  = np.argsort(np.random.random(n_samples))
-train_D = [train_D[i] for i in idx][:n_samples]
-train_y = [train_y[i] for i in idx][:n_samples]
+# Shuffle
+idx = np.arange(train_D.shape[0])
+np.random.shuffle(idx)
+train_D = np.array([train_D[i] for i in idx])
+train_y = np.array([train_y[i] for i in idx])
 
-n = int(n_samples/NN) # Number of samples per node
-label_point = np.array([ train_y[n*i: n*i+n] for i in range(NN) ])
-data_point  = np.array([ train_D[n*i: n*i+n] for i in range(NN) ])
+# Without sampling: the probability distribution of chosen_class is 1/10
+# n = n_samples//NN # Number of samples per node
+# data_point = np.array([train_D[n*i: n*i+n] for i in range(NN)])
+# label_point = np.array([train_y[n*i: n*i+n] for i in range(NN)])
 
-T = 2	# Layers
-d = 28*28	# Number of neurons in each layer. Same numbers for all the layers
+# With pos/neg sampling: the proability distribution of chosen_class is 1/2
+pos_idx = np.where(train_y == 1)[0][:n_samples//2]
+neg_idx = np.where(train_y == 0)[0][:n_samples-n_samples//2]
 
-stepsize = 0.1 # learning rate
-J = np.zeros((MAXITERS)) # Cost
+n = n_samples//NN # Number of samples per node
+indices = np.concatenate((pos_idx, neg_idx))
+np.random.shuffle(indices)
+indices = indices.reshape((NN, n))
 
-UU = np.random.randn(NN, T-1, d, d+1)	# U_t :Initial Weights / Initial Input Trajectory 
+data_point = train_D[indices]
+label_point = train_y[indices]
+
+print(f"Training label points:\n{label_point}\n")
+
+# Training
+
+d = 28*28           # Number of neurons in each layer. Same numbers for all the layers
+stepsize = 1e-4     # Learning rate
+J = np.zeros((MAXITERS))  # Cost
+
+#  U_t : U_0 Initial Weights / Initial Input Trajectory initializer randomly
+UU = np.random.randn(NN, T-1, d, d+1)
 UUp = np.zeros_like(UU)					# U_{t+1}
 VV = np.zeros_like(UU)
 
-YY = np.random.randn(NN, T-1, d, d+1)	# y_t
-YYp = np.zeros_like(YY)					# y_{t+1}
+Delta_u = np.zeros_like(UU)
+Delta_up = np.zeros_like(UU)
 
+YY = np.zeros((NN, T-1, d, d+1))		# z_t: z_0 Initialized at 0
+YYp = np.zeros_like(YY)					# z_{t+1}
 
-for ii in range (NN):
-	Nii = np.nonzero(Adj[ii])[0]
-	for kk in range(n):
+UUall = np.zeros((MAXITERS, NN, T-1, d, d+1))
+Jall = np.zeros((MAXITERS, NN))
+
+print(f"Training...")
+for ii in range(NN):  # For each node
+	totalCost = 0  # Sum up the cost of each image
+	Delta_u[ii] = 0
+	for kk in range(n):  # For each image of the node
+
 		image = data_point[ii][kk]
 		label = label_point[ii][kk]
 
-		VV[ii] = WW[ii,ii]*UU[ii]
-		for jj in Nii:
-			VV[ii] += WW[ii,jj]*UU[jj]
+		# Forward pass
+		XX = forward_pass(UU[ii], image)  # f_i(x_i,t)
+		# Cost function
+		cost, cost_d = BCE(XX[-1,-1], label)
+		totalCost += cost
+		llambdaT = cost_d
 
-		# Initial State Trajectory
-		XX = forward_pass(VV[ii], image)
-		# Backward propagation
-		llambdaT = 2*(XX[-1,:] - label)
-		YY[ii] = backward_pass(XX, VV[ii], llambdaT) #y_i,0
-UU = VV
+		# Backward propagation            # \nabla f_i(x_{i,t})
+		Delta_u[ii] += backward_pass(XX, UU[ii], llambdaT) # Sum weigth errors on the full batch of images
+	YY[ii] = Delta_u[ii]
 
 for tt in range (MAXITERS):
-	if (tt % 1) == 0:
-		print("Iteration {:3d}".format(tt), end="\n")
-	
-	for ii in range(NN):
-		Nii = np.nonzero(Adj[ii])[0]
 
-		totalCost = 0 # Sum up the cost of each image
-		for kk in range(n):
+	# Weights update
+	for ii in range(NN):  # For each node
+		Nii = np.nonzero(Adj[ii])[0] # Self loop is not present
+
+		VV[ii] = WW[ii, ii]*UU[ii]
+		for jj in Nii:
+			VV[ii] += WW[ii, jj]*UU[jj]
+		UUp[ii] = VV[ii] - stepsize*YY[ii]
+
+	for ii in range(NN):  # For each node
+		totalCost = 0  # Sum up the cost of each image
+		Delta_up[ii] = 0
+		for kk in range(n):  # For each image of the node
+
 			image = data_point[ii][kk]
 			label = label_point[ii][kk]
 
-			VV[ii] = WW[ii,ii]*UU[ii]
-			for jj in Nii:
-				VV[ii] += WW[ii,jj]*UU[jj]
-			# Weights update
-			UUp[ii] = VV[ii] - stepsize*YY[ii]
-
 			# Forward pass
-			XX = forward_pass(UU[ii], image)	#f_i(x_i,t)
+			XX = forward_pass(UUp[ii], image)  # f_i(x_i,t)
 			# Cost function
-			MSE_d = 2*(XX[-1,:] - label)
-			llambdaT = MSE_d
-			totalCost += (XX[-1,:] - label)[0]**2	# Pick one random neuron because all are the same
-			# Backward propagation
-			Delta_u = backward_pass(XX, UU[ii], llambdaT) #\nabla f_i(x_{i,t})
-			
-			# Forward pass
-			XXp = forward_pass(UU[ii], image)	#f_i(x_i,t)
-			# Cost function
-			MSE_d = 2*(XXp[-1,:] - label)
-			llambdaTtp = MSE_d
-			# Backward propagation
-			Delta_utp = backward_pass(XXp, UUp[ii], llambdaTtp) #\nabla f_i(x_{i,t+1})
+			cost, cost_d = BCE(XX[-1,-1], label)
+			totalCost += cost
+			llambdaT = cost_d
 
-			YYp[ii] = WW[ii,ii]*YY[ii] + (Delta_utp - Delta_u)
-			for jj in Nii:
-				YYp[ii] += WW[ii,jj]*YY[jj]
-
+			# Backward propagation            # \nabla f_i(x_{i,t})
+			Delta_up[ii] += backward_pass(XX, UUp[ii], llambdaT) # Sum weigth errors on the full batch of images
+		
 		# Store the Loss Value across Iterations (the sum of costs of all nodes)
 		J[tt] += totalCost
+
+	for ii in range(NN):  # For each node
+		Nii = np.nonzero(Adj[ii])[0] # Self loop is not present
+			
+		YYp[ii] = WW[ii,ii]*YY[ii] + (Delta_up[ii] - Delta_u[ii])
+		for jj in Nii:
+			YYp[ii] += WW[ii,jj]*YY[jj]
 
 	# Update the current step
 	UU = UUp
 	YY = YYp
+	Delta_u = Delta_up
 
-plt.figure()
+	if (tt % 1) == 0:
+		print(f"Iteration {tt:3d} - loss: {J[tt]:4.3f}", end="\n")
+
+# Evolution of cost function
+fig = plt.figure()
 plt.semilogy(np.arange(MAXITERS), J, linestyle='-', linewidth=2)
 plt.xlabel(r"iterations $t$")
 plt.ylabel(r"cost")
 plt.title(r"Evolution of the cost error: $\min \sum_{i=1}^N \sum_{k=1}^\mathcal{I} J(\phi(u;x_i^k);y_i^k)$")
 plt.grid()
 plt.show()
+#fig.savefig('./imgs/Gradient Tracking.png')
+
+# Evaluation on test set
+y_pred = []
+
+idx = np.argsort(np.random.random(test_D.shape[0]))
+test_images = [test_D[i] for i in idx][:n_samples]
+test_labels = [test_y[i] for i in idx][:n_samples]
+for image, label in zip(test_images, test_labels):
+	# Forward pass
+	XX = forward_pass(UU[ii], image)  # f_i(x_i,t)
+	y_pred.append(1 if XX[-1, -1] > 0.5 else 0)
+
+print(y_pred)
+print(test_labels)
+
+print()
+
+print(f'accuracy: {accuracy_score(test_labels, y_pred):.4f}')
+weights = [1 - test_labels.count(1) / len(test_labels) if i == 1 else 1 -
+		   test_labels.count(0) / len(test_labels) for i in test_labels]
+print(
+	f'accuracy with weights: {accuracy_score(test_labels, y_pred, sample_weight=weights):.4f}')

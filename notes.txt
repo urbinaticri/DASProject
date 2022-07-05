@@ -17,3 +17,6 @@ solutions to try:
 
 TASK 1
 -show steps, ask where error is?
+-reduce a lot stepsize
+-alternative method for evaluation: divide shot output in 4 categories (correct 1, correct 0, false positive, false negative), evaluate only first
+two classes as correct guesses

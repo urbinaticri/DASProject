@@ -50,9 +50,13 @@ class Agent(Node):
         dist = self.get_parameter('dist').value
         self.dist_ii = np.array(dist) # it returns an n_x by 1 array
 
-        x_i = self.get_parameter('x_init').value
-        self.n_x = len(x_i)
-        self.x_i = np.array(x_i) # it returns an n_x by 1 array
+        p_i = self.get_parameter('p_init').value
+        self.n_x = len(p_i)
+        self.p_i = np.array(p_i) # it returns an n_x by 1 array
+
+        v_i = self.get_parameter('v_init').value
+        self.n_x = len(v_i)
+        self.v_i = np.array(v_i) # it returns an n_x by 1 array
         
         self.max_iters = self.get_parameter('max_iters').value
         self.communication_time = self.get_parameter('communication_time').value

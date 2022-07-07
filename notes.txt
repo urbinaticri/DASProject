@@ -1,0 +1,22 @@
+ROS
+-how to generate B matrix, any tips? wtf going on
+-do we need to generate position and velocity errors? 
+-matrix A has to be L? or not?
+-what is control law?
+
+-try to implement theorem 3 control law into code before asking professor
+
+solutions to try: 
+-modify launch file with bearing positons, use double integrator with u=0 for leaders and
+ papers u 
+- better to use template formation control discrete
+- A = double integrator [[0 0][0 1]] B = double integrator [[0 1]]
+- start with leaders at zero velocity and gradually add difficulty
+
+
+
+TASK 1
+-show steps, ask where error is?
+-reduce a lot stepsize
+-alternative method for evaluation: divide shot output in 4 categories (correct 1, correct 0, false positive, false negative), evaluate only first
+two classes as correct guesses

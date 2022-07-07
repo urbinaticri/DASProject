@@ -79,7 +79,7 @@ class Visualizer(Node):
 
             # Specify the color of the marker as RGBA
             color = [1.0, 0.0, 0.0, 1.0]
-            if self.agent_id % 2:
+            if self.agent_id < 2:
                 color = [0.0, 0.5, 0.5, 1.0]
 
             marker.color.r = color[0]

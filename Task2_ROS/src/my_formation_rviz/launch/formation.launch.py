@@ -113,15 +113,18 @@ def generate_launch_description():
             ))
 
     ################################################################################
+    print(x_init)
     for ii in range(NN):
 
-        bearing_ii = Pg_star[:, ii, :, :].tolist()
+        bearing_ii = Pg_star[:, ii, :, :].flatten().tolist()
 
         N_ii = np.nonzero(Adj[:, ii])[0].tolist()
         ii_index = ii*d + np.arange(d)
-        x_init_ii = []
-        x_init_ii = x_init[ii_index].flatten().tolist()
-        x_init_ii = x_init[ii_index+NN].flatten().tolist()
+        x_init_ii = np.concatenate((
+            x_init[ii_index].flatten(),
+            x_init[ii_index + NN*d].flatten()),
+            axis=0
+        ).tolist()    
 
         launch_description.append(
             Node(
@@ -133,9 +136,8 @@ def generate_launch_description():
                                 'max_iters': MAXITERS, 
                                 'communication_time': COMM_TIME, 
                                 'neigh': N_ii, 
-                                'p_init': p_init_ii,
-                                'v_init': v_init_ii,
-                                'dist' : bearing_ii,
+                                'x_init': x_init_ii, #[p_x, p_y, v_x, v_y]
+                                'dist' : bearing_ii
                                 }],
                 output='screen',
                 prefix='xterm -title "agent_{}" -hold -e'.format(ii)

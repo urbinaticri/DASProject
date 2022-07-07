@@ -8,26 +8,12 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray as msg_float
 
+k_p = 10
+k_v = 10
 
-def formation_update(dt, x_i, neigh, data, dist):
-    """
-      dt    = discretization step
-      x_i   = state pf agent i
-      neigh = list of neihbors
-      data  = state of neighbors
-      dist  = coefficient for formation control law 
-    """
-    xdot_i = np.zeros(x_i.shape)
-
-    for j in neigh:
-        x_j = np.array(data[j].pop(0)[1:])
-        dV_ij = ((x_i - x_j).T@(x_i - x_j) - dist[j]**2)*(x_i - x_j)
-        xdot_i += - dV_ij
-
-    # Forward Euler
-    x_i += dt*xdot_i
-
-    return x_i
+n_f = 2
+NN = 4
+d = 2
 
 def writer(file_name, string):
     """
@@ -48,15 +34,11 @@ class Agent(Node):
         self.neigh = self.get_parameter('neigh').value
         
         dist = self.get_parameter('dist').value
-        self.dist_ii = np.array(dist) # it returns an n_x by 1 array
+        self.dist_ii = np.array(dist).reshape(4, 2, 2) # it returns an n_x by 1 array
 
-        p_i = self.get_parameter('p_init').value
-        self.n_x = len(p_i)
-        self.p_i = np.array(p_i) # it returns an n_x by 1 array
-
-        v_i = self.get_parameter('v_init').value
-        self.n_x = len(v_i)
-        self.v_i = np.array(v_i) # it returns an n_x by 1 array
+        x_i = self.get_parameter('x_init').value
+        self.n_x = len(x_i)
+        self.x_i = np.array(x_i) # it returns an n_x by 1 array
         
         self.max_iters = self.get_parameter('max_iters').value
         self.communication_time = self.get_parameter('communication_time').value
@@ -105,8 +87,8 @@ class Agent(Node):
 
             # for element in self.x_i: 
             #     msg.data.append(float(element))
-            [msg.data.append(float(element)) for element in self.x_i]
-
+            [msg.data.append(float(element)) for element in self.x_i] # msg.data: [tt, p_x, p_y, v_x, v_y]
+            
             self.publisher_.publish(msg)
             self.tt += 1
 
@@ -132,7 +114,7 @@ class Agent(Node):
 
             if sync:
                 DeltaT = self.communication_time/10
-                self.x_i = formation_update(DeltaT, self.x_i, self.neigh, self.received_data, self.dist_ii)
+                self.formation_update(DeltaT)
                 
                 # publish the updated message
                 msg.data = [float(self.tt)]
@@ -156,6 +138,30 @@ class Agent(Node):
 
                 # update iteration counter
                 self.tt += 1
+
+    
+    def formation_update(self, dt):
+        """
+        dt    = discretization step
+        """
+        dx = np.zeros(self.x_i.shape)
+
+        u = np.zeros(d)
+        for j in self.neigh:
+            x_j = np.array(self.received_data[j].pop(0)[1:])
+            pp = self.x_i[0:2] - x_j[0:2]
+            vv = self.x_i[2:4] - x_j[2:4]
+            pg_star = self.dist_ii[j]
+            u -=  pg_star @ (k_p*pp + k_v*vv)
+
+        dp = self.x_i[2:4]
+        dv = [0,0] if (self.agent_id < 2) else u
+
+        dx[0:2] = dp
+        dx[2:4] = dv
+
+        # Forward Euler
+        self.x_i += dx*dt
 
 def main(args=None):
     rclpy.init(args=args)

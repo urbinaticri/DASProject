@@ -4,28 +4,42 @@ import numpy as np
 import os
 from ament_index_python.packages import get_package_share_directory
 
+def read_file(filename, n_agent):
+    PP = []
+    Adj = []
+    cntr = 0
+    with open(filename, 'r') as f:
+        for line in f.readlines():
+            if cntr < 6: #PP
+                PP.extend([int(p) for p in line.split()])
+            else: #Adj
+                Adj.append([int(p) for p in line.split()])
+            cntr += 1
+    return np.array(PP), np.asarray(Adj)
+
 
 def generate_launch_description():
     MAXITERS = 2000
     COMM_TIME = 5e-2 # communication time period
     np.random.seed(5)
 
-    NN = 4 # number of agents
+    NN = 6 # number of agents
     n_leaders = 2 # number of leaders
     d = 2 # dimension of positions and velocities
 
-    # formation: square ex. in fig 2 -> agent 1 bottom-left, order counter-clockwise
     L = 1.0
-    PP = np.array([L, 0, L, L, 0, L, 0, 0])
+    PP, Adj = read_file("formation_A", NN)
+    PP = L*PP
+    print(PP)
 
     # initial positions
     p = np.vstack((
-        np.array([L, 0, L, L]).reshape(d*n_leaders, 1),
+        np.array(PP[:n_leaders*d]).reshape(d*n_leaders, 1),
         np.zeros((d*(NN-n_leaders),1)) + 5*np.random.rand(d*(NN-n_leaders),1)
     ))
 
     # initial velocities
-    constant_v = 0.5 #Leaders constant velocity
+    constant_v = 0 #Leaders constant velocity
     v = np.vstack((
         np.zeros((d*n_leaders,1)) + constant_v,
         np.zeros((d*(NN-n_leaders),1))
@@ -57,10 +71,9 @@ def generate_launch_description():
             Pg_star[ii, jj, :] = P(g_star)
 
     # TODO: when writing report, use this to demonstrate antisymmetry
-    """ is_GG_antisym = GG+np.transpose(GG, axes= (1, 0, 2))
-    print(is_GG_antisym)
-    print(GG)
-    exit() """
+    is_GG_antisym = GG+np.transpose(GG, axes= (1, 0, 2))
+    #print(is_GG_antisym)
+    #print(GG)
 
     # ER Network generation
     p_ER = 0.9
@@ -82,17 +95,10 @@ def generate_launch_description():
             print("the graph is connected\n")
             break
 
-    # Adj = np.asarray([
-    # 	[0,     1,      1,		1],
-    # 	[1,     0,      1,    	0],
-    # 	[1,     1,      0,    	1],     
-    # 	[1,     0,      1,    	0]
-    # ])
     DEGREE = np.sum(Adj, axis=0)
     D_IN = np.diag(DEGREE)
     # Laplacian Matrix
     L_IN = D_IN - Adj.T
-
     
     launch_description = [] # Append here your nodes
     ################################################################################

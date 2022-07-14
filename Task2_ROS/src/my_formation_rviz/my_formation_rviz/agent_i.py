@@ -11,8 +11,7 @@ from std_msgs.msg import Float32MultiArray as msg_float
 k_p = 10
 k_v = 10
 
-n_f = 2
-NN = 4
+NN = 6
 d = 2
 
 def writer(file_name, string):
@@ -34,7 +33,7 @@ class Agent(Node):
         self.neigh = self.get_parameter('neigh').value
         
         dist = self.get_parameter('dist').value
-        self.dist_ii = np.array(dist).reshape(4, 2, 2) # it returns an n_x by 1 array
+        self.dist_ii = np.array(dist).reshape(NN, 2, 2) # it returns an n_x by 1 array
 
         x_i = self.get_parameter('x_init').value
         self.n_x = len(x_i)

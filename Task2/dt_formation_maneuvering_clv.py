@@ -1,26 +1,42 @@
 import numpy as np
+import time
 import matplotlib.pyplot as plt
 from animations import formation as animation
 
 ANIMATION = True
 np.random.seed(5)
 
-NN = 4 # number of agents
+NN = 6 # number of agents
 n_leaders = 2 # number of leaders
 d = 2 # dimension of positions and velocities
 
+def read_file(filename, n_agent):
+    PP = []
+    Adj = []
+    cntr = 0
+    with open(filename, 'r') as f:
+        for line in f.readlines():
+            if cntr < 6: #PP
+                PP.extend([int(p) for p in line.split()])
+            else: #Adj
+                Adj.append([int(p) for p in line.split()])
+            cntr += 1
+    return np.array(PP), np.asarray(Adj)
+
 # formation: square ex. in fig 2 -> agent 1 bottom-left, order counter-clockwise
 L = 1.0
-PP = np.array([L, 0, L, L, 0, L, 0, 0])
+PP, Adj = read_file("formation_S", NN)
+PP = L*PP
+
 
 # initial positions
 p = np.vstack((
-	np.array([L, 0, L, L]).reshape(d*n_leaders, 1),
+	np.array(PP[:n_leaders*d]).reshape(d*n_leaders, 1),
 	np.zeros((d*(NN-n_leaders),1)) + 5*np.random.rand(d*(NN-n_leaders),1)
 ))
 
 # initial velocities
-constant_v = 0.5 #Leaders constant velocity
+constant_v = 0 #Leaders constant velocity
 v = np.vstack((
 	np.zeros((d*n_leaders,1)) + constant_v,
 	np.zeros((d*(NN-n_leaders),1))
@@ -58,35 +74,29 @@ print(GG)
 exit() """
 
 # ER Network generation
-p_ER = 0.9
+#p_ER = 0.9
 
-I_NN = np.identity(NN, dtype=int)
-I_nx = np.identity(d, dtype=int)
-I_NN_nx = np.identity(d*NN, dtype=int)
-O_NN = np.ones((NN,1), dtype=int)
+# I_NN = np.identity(NN, dtype=int)
+# I_nx = np.identity(d, dtype=int)
+# I_NN_nx = np.identity(d*NN, dtype=int)
+# O_NN = np.ones((NN,1), dtype=int)
 
-while 1:
-	Adj = np.random.binomial(1, p_ER, (NN, NN))
-	Adj = np.logical_or(Adj, Adj.T)
-	Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int)
+# while 1:
+# 	Adj = np.random.binomial(1, p_ER, (NN, NN))
+# 	Adj = np.logical_or(Adj, Adj.T)
+# 	Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int)
 
-	# test connectivity
-	test = np.linalg.matrix_power((I_NN+Adj),NN)
+# 	# test connectivity
+# 	test = np.linalg.matrix_power((I_NN+Adj),NN)
 	
-	if np.all(test>0):
-		print("the graph is connected\n")
-		break
+# 	if np.all(test>0):
+# 		print("the graph is connected\n")
+# 		break
 
-# Adj = np.asarray([
-# 	[0,     1,      1,		1],
-# 	[1,     0,      1,    	0],
-# 	[1,     1,      0,    	1],     
-# 	[1,     0,      1,    	0]
-# ])
-DEGREE = np.sum(Adj, axis=0)
-D_IN = np.diag(DEGREE)
-# Laplacian Matrix
-L_IN = D_IN - Adj.T
+# DEGREE = np.sum(Adj, axis=0)
+# D_IN = np.diag(DEGREE)
+# # Laplacian Matrix
+# L_IN = D_IN - Adj.T
 
 # Bearing Laplacian Matrix
 B = np.zeros((d*NN, d*NN))
@@ -115,7 +125,7 @@ B_ff = B[d*n_f:d*NN,d*n_f:d*NN] # shape (d*n_f, d*n_f) -> if nonsingular then ta
 # system dynamics: Formation Maneuvering with Constant Leader Velocity
 def form_maneuv_clv_func(p, v, k_p, k_v, Adj):
 	u = np.zeros(np.shape(v))
-	for ii in range(n_f,NN):
+	for ii in range(n_l,NN):
 		N_ii = np.nonzero(Adj[ii])[0] # In-Neighbors of node i
 		index_ii =  ii*d + np.arange(d)
 		for jj in N_ii:
@@ -173,8 +183,8 @@ PP_curr = PP
 dist_err = []
 T = []
 
-k_p = 1
-k_v = 1
+k_p = 5
+k_v = 5
 
 x = x_init
 for i, t in enumerate(horizon):
@@ -216,4 +226,4 @@ plt.title("Distance error w.r.t. desired coordinates")
 if ANIMATION: # animation (0 to avoid animation)
 	plt.figure(2)
 	animation(xout,T,Adj,NN,d)
-plt.show()
+time.sleep(10000)

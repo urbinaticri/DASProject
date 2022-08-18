@@ -1,0 +1,18 @@
+[0.844s] Invoking command in '/home/cristian/DASProject/Task2_ROS/build/my_formation_rviz': PYTHONPATH=/home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --prefix /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz --editable --build-directory /home/cristian/DASProject/Task2_ROS/build/my_formation_rviz/build --no-deps install_data --install-dir /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz
+[1.116s] running develop
+[1.273s] running egg_info
+[1.273s] writing my_formation_rviz.egg-info/PKG-INFO
+[1.273s] writing dependency_links to my_formation_rviz.egg-info/dependency_links.txt
+[1.274s] writing entry points to my_formation_rviz.egg-info/entry_points.txt
+[1.274s] writing requirements to my_formation_rviz.egg-info/requires.txt
+[1.274s] writing top-level names to my_formation_rviz.egg-info/top_level.txt
+[1.306s] reading manifest file 'my_formation_rviz.egg-info/SOURCES.txt'
+[1.306s] writing manifest file 'my_formation_rviz.egg-info/SOURCES.txt'
+[1.353s] running build_ext
+[1.353s] Creating /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/lib/python3.8/site-packages/my-formation-rviz.egg-link (link to .)
+[1.354s] Installing agent_i script to /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/lib/my_formation_rviz
+[1.354s] Installing visualizer script to /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/lib/my_formation_rviz
+[1.355s] 
+[1.355s] Installed /home/cristian/DASProject/Task2_ROS/build/my_formation_rviz
+[1.355s] running install_data
+[1.388s] Invoked command in '/home/cristian/DASProject/Task2_ROS/build/my_formation_rviz' returned '0': PYTHONPATH=/home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/lib/python3.8/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --prefix /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz --editable --build-directory /home/cristian/DASProject/Task2_ROS/build/my_formation_rviz/build --no-deps install_data --install-dir /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz

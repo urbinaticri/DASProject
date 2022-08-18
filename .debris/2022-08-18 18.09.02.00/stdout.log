@@ -1,0 +1,26 @@
+running develop
+running egg_info
+creating my_formation_rviz.egg-info
+writing my_formation_rviz.egg-info/PKG-INFO
+writing dependency_links to my_formation_rviz.egg-info/dependency_links.txt
+writing entry points to my_formation_rviz.egg-info/entry_points.txt
+writing requirements to my_formation_rviz.egg-info/requires.txt
+writing top-level names to my_formation_rviz.egg-info/top_level.txt
+writing manifest file 'my_formation_rviz.egg-info/SOURCES.txt'
+reading manifest file 'my_formation_rviz.egg-info/SOURCES.txt'
+writing manifest file 'my_formation_rviz.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/lib/python3.8/site-packages/site.py
+Creating /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/lib/python3.8/site-packages/my-formation-rviz.egg-link (link to .)
+Installing agent_i script to /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/lib/my_formation_rviz
+Installing visualizer script to /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/lib/my_formation_rviz
+
+Installed /home/cristian/DASProject/Task2_ROS/build/my_formation_rviz
+running install_data
+creating /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/share/ament_index
+creating /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/share/ament_index/resource_index
+creating /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/share/ament_index/resource_index/packages
+copying resource/my_formation_rviz -> /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/share/ament_index/resource_index/packages
+copying package.xml -> /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/share/my_formation_rviz
+copying launch/formation.launch.py -> /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/share/my_formation_rviz
+copying resource/rviz_config.rviz -> /home/cristian/DASProject/Task2_ROS/install/my_formation_rviz/share/my_formation_rviz

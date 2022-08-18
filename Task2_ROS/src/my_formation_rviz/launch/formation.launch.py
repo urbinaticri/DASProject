@@ -23,8 +23,8 @@ def generate_launch_description():
     COMM_TIME = 5e-2 # communication time period
     np.random.seed(5)
 
-    filename = "formation_A"
-    NN = 7 # number of agents
+    filename = "formation_S"
+    NN = 6 # number of agents
     n_leaders = 2 # number of leaders
     d = 2 # dimension of positions and velocities
 

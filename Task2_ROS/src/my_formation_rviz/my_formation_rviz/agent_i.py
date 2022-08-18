@@ -11,7 +11,7 @@ from std_msgs.msg import Float32MultiArray as msg_float
 k_p = 10
 k_v = 10
 
-NN = 7
+NN = 6
 d = 2
 
 def writer(file_name, string):

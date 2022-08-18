@@ -4,16 +4,16 @@ import numpy as np
 import os
 from ament_index_python.packages import get_package_share_directory
 
-def read_file(filename, n_agent):
+def read_file(filename, n_agents):
     PP = []
     Adj = []
     cntr = 0
     with open(filename, 'r') as f:
         for line in f.readlines():
-            if cntr < 6: #PP
-                PP.extend([int(p) for p in line.split()])
+            if cntr < n_agents: #PP
+                PP.extend([float(p) for p in line.split()])
             else: #Adj
-                Adj.append([int(p) for p in line.split()])
+                Adj.append([float(p) for p in line.split()])
             cntr += 1
     return np.array(PP), np.asarray(Adj)
 
@@ -23,12 +23,13 @@ def generate_launch_description():
     COMM_TIME = 5e-2 # communication time period
     np.random.seed(5)
 
-    NN = 6 # number of agents
+    filename = "formation_A"
+    NN = 7 # number of agents
     n_leaders = 2 # number of leaders
     d = 2 # dimension of positions and velocities
 
     L = 1.0
-    PP, Adj = read_file("formation_A", NN)
+    PP, Adj = read_file(filename, NN)
     PP = L*PP
     print(PP)
 

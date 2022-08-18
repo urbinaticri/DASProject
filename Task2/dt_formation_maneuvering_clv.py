@@ -6,8 +6,9 @@ from animations import formation as animation
 ANIMATION = True
 np.random.seed(5)
 
-NN = 6 # number of agents
-n_leaders = 2 # number of leaders
+filename = "formation_D"
+NN = 8 # number of agents
+n_leaders = 4 # number of leaders
 d = 2 # dimension of positions and velocities
 
 def read_file(filename, n_agent):
@@ -16,16 +17,16 @@ def read_file(filename, n_agent):
     cntr = 0
     with open(filename, 'r') as f:
         for line in f.readlines():
-            if cntr < 6: #PP
-                PP.extend([int(p) for p in line.split()])
+            if cntr < NN: #PP
+                PP.extend([float(p) for p in line.split()])
             else: #Adj
-                Adj.append([int(p) for p in line.split()])
+                Adj.append([float(p) for p in line.split()])
             cntr += 1
     return np.array(PP), np.asarray(Adj)
 
 # formation: square ex. in fig 2 -> agent 1 bottom-left, order counter-clockwise
 L = 1.0
-PP, Adj = read_file("formation_S", NN)
+PP, Adj = read_file(filename, NN)
 PP = L*PP
 
 
@@ -58,10 +59,6 @@ def P(g_ij):
 	g_ij = g_ij.reshape((-1, 1)) #here reshape because from row array i.e. [1,0] we want col array i.e. [[1], [0]] 
 	return np.identity(d) - g_ij@(g_ij.T)
 
-
-#TODO: Set bearing angles instead of positions, leaders must keep position
-
-PP = np.array([L,0, L, L, 0, L, 0, 0]).T 
 GG = np.zeros((NN, NN, d), dtype=np.float32)
 Pg_star = np.zeros((NN, NN, d, d), dtype=np.float32)
 
@@ -72,35 +69,8 @@ for ii in range(NN):
 		Pg_star[ii, jj, :] = P(g_star)
 
 # TODO: when writing report, use this to demonstrate antisymmetry
-""" is_GG_antisym = GG+np.transpose(GG, axes= (1, 0, 2))
+is_GG_antisym = not np.any(GG+np.transpose(GG, axes= (1, 0, 2)))
 print(is_GG_antisym)
-print(GG)
-exit() """
-
-# ER Network generation
-#p_ER = 0.9
-
-# I_NN = np.identity(NN, dtype=int)
-# I_nx = np.identity(d, dtype=int)
-# I_NN_nx = np.identity(d*NN, dtype=int)
-# O_NN = np.ones((NN,1), dtype=int)
-
-# while 1:
-# 	Adj = np.random.binomial(1, p_ER, (NN, NN))
-# 	Adj = np.logical_or(Adj, Adj.T)
-# 	Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int)
-
-# 	# test connectivity
-# 	test = np.linalg.matrix_power((I_NN+Adj),NN)
-	
-# 	if np.all(test>0):
-# 		print("the graph is connected\n")
-# 		break
-
-# DEGREE = np.sum(Adj, axis=0)
-# D_IN = np.diag(DEGREE)
-# # Laplacian Matrix
-# L_IN = D_IN - Adj.T
 
 # Bearing Laplacian Matrix
 B = np.zeros((d*NN, d*NN))
@@ -123,7 +93,7 @@ B_fl = B[d*n_f:d*NN,d*0:d*n_l]	# shape (d*n_f, d*n_l)
 B_ff = B[d*n_f:d*NN,d*n_f:d*NN] # shape (d*n_f, d*n_f) -> if nonsingular then target formation is unique
 
 #TODO: when wrinting report use this to demonstrate determinant of B_ff != 0 => B unique
-#print(np.linalg.det(B_ff))
+print(np.linalg.det(B_ff) != 0)
 
 
 # system dynamics: Formation Maneuvering with Constant Leader Velocity
@@ -167,7 +137,7 @@ A_fl = np.zeros((NN*d, NN*d))
 A_ff = np.zeros((NN*d, NN*d))
 
 A_top = np.concatenate((A_ll, A_lf), axis = 1)
-A_low = np.concatenate((A_fl, A_ll), axis = 1)
+A_low = np.concatenate((A_fl, A_ff), axis = 1)
 A = np.concatenate((A_top, A_low), axis = 0)
 # print(f"A matrix, shape:{A.shape}")
 # print(np.array_str(A, precision=2, suppress_small=True))
@@ -187,8 +157,8 @@ PP_curr = PP
 dist_err = []
 T = []
 
-k_p = 5
-k_v = 5
+k_p = 4
+k_v = 4
 
 x = x_init
 for i, t in enumerate(horizon):

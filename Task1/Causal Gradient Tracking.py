@@ -147,7 +147,7 @@ def MSE(y_pred, y_true):
 	mse_d = 2*(y_pred - y_true)
 	return mse, mse_d
 
-# Bunary Cross-Entropy - Loss Function
+# Binary Cross-Entropy - Loss Function
 def BCE(y_pred, y_true):
 	bce = - (y_true * np.log(y_pred + 1e-10) + (1 - y_true) * np.log(1 - y_pred + 1e-10))
 	bce_d = - (y_true / (y_pred + 1e-10) - (1 - y_true) / (1 - y_pred + 1e-10))
@@ -194,7 +194,7 @@ print(f"Training label points:\n{label_point}\n")
 # Training
 
 d = 28*28           # Number of neurons in each layer. Same numbers for all the layers
-stepsize = 1e-2    # Learning rate
+stepsize = 1e-2     # Learning rate
 J = np.zeros((MAXITERS, NN))  # Cost
 
 #  U_t : U_0 Initial Weights / Initial Input Trajectory initialized randomly

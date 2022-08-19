@@ -145,10 +145,18 @@ def backward_pass(xx, uu, llambdaT):
 
 	return Delta_u
 
-# Bunary Cross-Entropy w/ logits - Loss Function
-def BCEwithLogits(z, y_true):
+# Binary Cross-Entropy w/ logits - Loss Function
+""" def BCEwithLogits(z, y_true):
 	bce = - (y_true * np.log(sigmoid_fn(z) + 1e-10) + (1 - y_true) * np.log(1 - sigmoid_fn(z) + 1e-10))
 	bce_d = - (y_true / (sigmoid_fn(z) + 1e-10) * (sigmoid_fn_derivative(z) + 1e-10) - (1 - y_true) / (1 - sigmoid_fn(z) + 1e-10) * (sigmoid_fn_derivative(z) + 1e-10))
+	return bce, bce_d """
+
+def BCEwithLogits(z, y_true):
+	if z >= 0:
+		bce = z - y_true*z + np.log(1 + np.exp(-z))
+	else:
+		bce = -y_true*z + np.log(1 + np.exp(z))
+	bce_d = np.exp(z) / (1 + np.exp(z)) - y_true
 	return bce, bce_d
 
 ###############################################################################
@@ -192,7 +200,7 @@ print(f"Training label points:\n{label_point}\n")
 # Training
 
 d = 28*28           # Number of neurons in each layer. Same numbers for all the layers
-stepsize = 1e-4    # Learning rate
+stepsize = 1e-4    	# Learning rate
 J = np.zeros((MAXITERS, NN))  # Cost
 
 #  U_t : U_0 Initial Weights / Initial Input Trajectory initialized randomly

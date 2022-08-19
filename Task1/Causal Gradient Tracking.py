@@ -19,13 +19,14 @@ n_samples = NN*20   # Number of training samples
 p_ER = 0.8
 I_NN = np.eye(NN)  # np.identity
 while 1:
-	Adj = np.random.binomial(1, p_ER, (NN, NN))
-	Adj = np.logical_or(Adj, Adj.T)
-	Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int)
+	Adj = np.random.binomial(1, p_ER, (NN, NN)) # Generates a NNxNN matrix drawing values from a binomial distribution
+	Adj = np.logical_or(Adj, Adj.T) # Makes the matrix symmetric
+	Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int) # Set 0 on main diagonal
 
-	test = np.linalg.matrix_power(I_NN+Adj, NN)
+	test = np.linalg.matrix_power(I_NN+Adj, NN) # Strongly connected test
 	if np.all(test > 0):
 		break
+
 
 ###############################################################################
 # Compute mixing matrix

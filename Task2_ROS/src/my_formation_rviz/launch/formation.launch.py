@@ -72,17 +72,13 @@ def generate_launch_description():
             Pg_star[ii, jj, :] = P(g_star)
 
     # TODO: when writing report, use this to demonstrate antisymmetry
-    is_GG_antisym = GG+np.transpose(GG, axes= (1, 0, 2))
+    is_GG_antisym = not np.any(GG+np.transpose(GG, axes= (1, 0, 2)))
     #print(is_GG_antisym)
-    #print(GG)
 
     # ER Network generation
     p_ER = 0.9
 
     I_NN = np.identity(NN, dtype=int)
-    I_nx = np.identity(d, dtype=int)
-    I_NN_nx = np.identity(d*NN, dtype=int)
-    O_NN = np.ones((NN,1), dtype=int)
 
     while 1:
         Adj = np.random.binomial(1, p_ER, (NN, NN))
@@ -96,10 +92,6 @@ def generate_launch_description():
             print("the graph is connected\n")
             break
 
-    DEGREE = np.sum(Adj, axis=0)
-    D_IN = np.diag(DEGREE)
-    # Laplacian Matrix
-    L_IN = D_IN - Adj.T
     
     launch_description = [] # Append here your nodes
     ################################################################################

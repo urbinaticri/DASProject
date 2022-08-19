@@ -19,11 +19,11 @@ n_samples = NN*20   # Number of training samples
 p_ER = 0.8
 I_NN = np.eye(NN)  # np.identity
 while 1:
-	Adj = np.random.binomial(1, p_ER, (NN, NN))
-	Adj = np.logical_or(Adj, Adj.T)
-	Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int)
+	Adj = np.random.binomial(1, p_ER, (NN, NN)) # Generates a NNxNN matrix drawing values from a binomial distribution
+	Adj = np.logical_or(Adj, Adj.T) # Makes the matrix symmetric
+	Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int) # Set 0 on main diagonal
 
-	test = np.linalg.matrix_power(I_NN+Adj, NN)
+	test = np.linalg.matrix_power(I_NN+Adj, NN) # Strongly connected test
 	if np.all(test > 0):
 		break
 
@@ -44,7 +44,6 @@ print('Check Stochasticity:\n row: {} \n column {}\n'.format(
 	np.sum(WW,axis=1),
 	np.sum(WW,axis=0)
 ))
-print(WW)
 ###############################################################################
 
 # Activation Function
@@ -146,17 +145,13 @@ def backward_pass(xx, uu, llambdaT):
 	return Delta_u
 
 # Binary Cross-Entropy w/ logits - Loss Function
-""" def BCEwithLogits(z, y_true):
-	bce = - (y_true * np.log(sigmoid_fn(z) + 1e-10) + (1 - y_true) * np.log(1 - sigmoid_fn(z) + 1e-10))
-	bce_d = - (y_true / (sigmoid_fn(z) + 1e-10) * (sigmoid_fn_derivative(z) + 1e-10) - (1 - y_true) / (1 - sigmoid_fn(z) + 1e-10) * (sigmoid_fn_derivative(z) + 1e-10))
-	return bce, bce_d """
-
 def BCEwithLogits(z, y_true):
 	if z >= 0:
 		bce = z - y_true*z + np.log(1 + np.exp(-z))
+		bce_d = 1 / (1 + np.exp(-z)) - y_true	# Derivative version that not cause overflow for z >= 0
 	else:
 		bce = -y_true*z + np.log(1 + np.exp(z))
-	bce_d = np.exp(z) / (1 + np.exp(z)) - y_true
+		bce_d = np.exp(z) / (1 + np.exp(z)) - y_true # Derivative version that not cause overflow for z < 0
 	return bce, bce_d
 
 ###############################################################################

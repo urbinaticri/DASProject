@@ -1,5 +1,0 @@
-cd Task2_ROS/
-source /opt/ros/foxy/setup.bash
-colcon build --symlink-install
-. install/setup.bash
-ros2 launch my_formation_rviz formation.launch.py

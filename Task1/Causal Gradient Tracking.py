@@ -23,12 +23,10 @@ while 1:
 	Adj = np.logical_or(Adj, Adj.T) # Makes the matrix symmetric
 	Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int) # Set 0 on main diagonal
 
-	test = np.linalg.matrix_power(I_NN+Adj, NN) # Strongly connected test
+	test = np.linalg.matrix_power(I_NN+Adj, NN) # Strongly connected graph test
 	if np.all(test > 0):
 		break
 
-
-###############################################################################
 # Compute mixing matrix
 threshold = 1e-10
 WW = 1.5*I_NN + 0.5*Adj
@@ -45,7 +43,6 @@ print('Check Stochasticity:\n row: {} \n column {}\n'.format(
 	np.sum(WW,axis=1),
 	np.sum(WW,axis=0)
 ))
-print(WW)
 ###############################################################################
 
 # Activation Function
@@ -67,8 +64,8 @@ def inference_dynamics(xt, ut):
 	"""
 	xtp = np.zeros(d)
 	for ell in range(d):
-		temp = xt@ut[ell, 1:] + ut[ell, 0]  # including the bias
-		xtp[ell] = sigmoid_fn(temp)  # x' * u_ell
+		temp = xt@ut[ell, 1:] + ut[ell, 0]
+		xtp[ell] = sigmoid_fn(temp)
 
 	return xtp
 
@@ -125,8 +122,8 @@ def adjoint_dynamics(ltp, xt, ut):
 def backward_pass(xx, uu, llambdaT):
 	"""
 	  input: 
-				xx state trajectory: x[1],x[2],..., x[T]
-				uu input trajectory: u[0],u[1],..., u[T-1]
+				xx state trajectory: x[1],x[2],..., x[T]	i.e. output of each layer of the neural network
+				uu input trajectory: u[0],u[1],..., u[T-1]	i.e. weights of the neural network
 				llambdaT terminal condition
 	  output: 
 				llambda costate trajectory
@@ -173,12 +170,13 @@ np.random.shuffle(idx)
 train_D = np.array([train_D[i] for i in idx])
 train_y = np.array([train_y[i] for i in idx])
 
-# Without sampling: the probability distribution of chosen_class is 1/10
+""" Without sampling: the probability distribution of chosen_class is 1/10 """
 # n = n_samples//NN # Number of samples per node
 # data_point = np.array([train_D[n*i: n*i+n] for i in range(NN)])
 # label_point = np.array([train_y[n*i: n*i+n] for i in range(NN)])
+""" ---------------------------------------------------------------------- """
 
-# With pos/neg sampling: the proability distribution of chosen_class is 1/2
+""" With pos/neg sampling: the proability distribution of chosen_class is 1/2 """
 pos_idx = np.where(train_y == 1)[0][:n_samples//2]
 neg_idx = np.where(train_y == 0)[0][:n_samples-n_samples//2]
 
@@ -189,6 +187,7 @@ indices = indices.reshape((NN, n))
 
 data_point = train_D[indices]
 label_point = train_y[indices]
+""" ------------------------------------------------------------------------ """
 
 print(f"Training label points:\n{label_point}\n")
 
@@ -200,7 +199,7 @@ J = np.zeros((MAXITERS, NN))  # Cost
 
 #  U_t : U_0 Initial Weights / Initial Input Trajectory initialized randomly
 UU = np.random.randn(MAXITERS+1, NN, T-1, d, d+1)
-Delta_u = np.zeros_like(UU)
+Delta_u = np.zeros_like(UU) # Weights update
 
 ZZ = np.zeros_like(UU)	# z_t: z_0 Initialized at 0
 

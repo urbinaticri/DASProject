@@ -26,12 +26,12 @@ def generate_launch_description():
     filename = "formation_S"
     NN = 6 # number of agents
     n_leaders = 2 # number of leaders
-    d = 2 # dimension of positions and velocities
+    d = 2 # space dimension
 
-    L = 1.0
+    # Load positions and adjacency matrix of desired formation
+    L = 1.0 # Scale
     PP, Adj = read_file(filename, NN)
     PP = L*PP
-    print(PP)
 
     # initial positions
     p = np.vstack((
@@ -46,24 +46,25 @@ def generate_launch_description():
         np.zeros((d*(NN-n_leaders),1))
     ))
 
+    # state vector initialization for all agents
     x_init = np.vstack((
         p,
         v
     ))
 
-    # bearing unit vector g_{ij}
+    # bearing unit vector g_{ij} function
     def g(pp,ii,jj):
         index_ii = ii*d + np.arange(d)
         index_jj = jj*d + np.arange(d)
         return (pp[index_jj] - pp[index_ii]) / (np.linalg.norm(pp[index_jj] - pp[index_ii]) + 1e-15)
 
-    # orthogonal projection matrix P_{g_{ij}}
+    # orthogonal projection matrix P_{g_{ij}} function
     def P(g_ij):
         g_ij = g_ij.reshape((-1, 1)) #here reshape because from row array i.e. [1,0] we want col array i.e. [[1], [0]] 
         return np.identity(d) - g_ij@(g_ij.T)
 
-    GG = np.zeros((NN, NN, d), dtype=np.float32)
-    Pg_star = np.zeros((NN, NN, d, d), dtype=np.float32)
+    GG = np.zeros((NN, NN, d), dtype=np.float32) # matrix containing bearing vector of desired formation
+    Pg_star = np.zeros((NN, NN, d, d), dtype=np.float32) # projection matrix of desired formation
 
     for ii in range(NN):
         for jj in range(NN):
@@ -71,22 +72,21 @@ def generate_launch_description():
             GG[ii, jj, :] = g_star
             Pg_star[ii, jj, :] = P(g_star)
 
-    # TODO: when writing report, use this to demonstrate antisymmetry
+    # When writing report, use this to demonstrate antisymmetry: g_{ji} = - g_{ij}
     is_GG_antisym = not np.any(GG+np.transpose(GG, axes= (1, 0, 2)))
-    #print(is_GG_antisym)
+    print(is_GG_antisym)
 
-    # ER Network generation
+    # Network generation
     p_ER = 0.9
-
     I_NN = np.identity(NN, dtype=int)
 
     while 1:
-        Adj = np.random.binomial(1, p_ER, (NN, NN))
-        Adj = np.logical_or(Adj, Adj.T)
-        Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int)
+        Adj = np.random.binomial(1, p_ER, (NN, NN)) # Generates a NNxNN matrix drawing values from a binomial distribution
+        Adj = np.logical_or(Adj, Adj.T) # Makes the matrix symmetric
+        Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int) # Set 0 on main diagonal
 
         # test connectivity
-        test = np.linalg.matrix_power((I_NN+Adj),NN)
+        test = np.linalg.matrix_power((I_NN+Adj),NN)  #Strongly connected graph test
         
         if np.all(test>0):
             print("the graph is connected\n")
@@ -112,18 +112,16 @@ def generate_launch_description():
             ))
 
     ################################################################################
-    print(x_init)
     for ii in range(NN):
 
-        bearing_ii = Pg_star[:, ii, :, :].flatten().tolist()
-
-        N_ii = np.nonzero(Adj[:, ii])[0].tolist()
+        bearing_ii = Pg_star[:, ii, :, :].flatten().tolist() # bearaing vectors relative to neighbors of agent i
+        N_ii = np.nonzero(Adj[:, ii])[0].tolist() # agent i neighbors indeces list
         ii_index = ii*d + np.arange(d)
         x_init_ii = np.concatenate((
             x_init[ii_index].flatten(),
             x_init[ii_index + NN*d].flatten()),
             axis=0
-        ).tolist()    
+        ).tolist() # Initial position and velociti of the agent i    
 
         launch_description.append(
             Node(
@@ -142,8 +140,6 @@ def generate_launch_description():
                 prefix='xterm -title "agent_{}" -hold -e'.format(ii)
             ))
 
-        ################################################################################
-        # RVIZ
         ################################################################################
 
         launch_description.append(

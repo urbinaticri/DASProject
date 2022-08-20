@@ -1,7 +1,3 @@
-#
-# 11/05/2022
-# IN-LP
-#
 from time import sleep
 import numpy as np
 import rclpy
@@ -113,6 +109,8 @@ class Agent(Node):
 
             if sync:
                 DeltaT = self.communication_time/10
+
+                # update the agent state
                 self.formation_update(DeltaT)
                 
                 # publish the updated message
@@ -138,7 +136,7 @@ class Agent(Node):
                 # update iteration counter
                 self.tt += 1
 
-    
+    # Implements the control law
     def formation_update(self, dt):
         """
         dt    = discretization step

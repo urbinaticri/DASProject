@@ -23,11 +23,10 @@ while 1:
 	Adj = np.logical_or(Adj, Adj.T) # Makes the matrix symmetric
 	Adj = np.multiply(Adj, np.logical_not(I_NN)).astype(int) # Set 0 on main diagonal
 
-	test = np.linalg.matrix_power(I_NN+Adj, NN) # Strongly connected test
+	test = np.linalg.matrix_power(I_NN+Adj, NN) # Strongly connected graph test
 	if np.all(test > 0):
 		break
 
-###############################################################################
 # Compute mixing matrix
 threshold = 1e-10
 WW = 1.5*I_NN + 0.5*Adj
@@ -46,21 +45,6 @@ print('Check Stochasticity:\n row: {} \n column {}\n'.format(
 ))
 ###############################################################################
 
-# Activation Function
-def sigmoid_fn(xi):
-	'''Numerically stable sigmoid function'''
-	if xi >= 0:
-		z = np.exp(-xi)
-		return 1 / (1 + z)
-	else:
-		z = np.exp(xi)
-		return z / (1 + z)
-
-
-# Derivative of Activation Function
-def sigmoid_fn_derivative(xi):
-	return sigmoid_fn(xi)*(1 - sigmoid_fn(xi))
-
 # Inference: x_tp = f(xt,ut)
 def inference_dynamics(xt, ut):
 	"""
@@ -72,7 +56,7 @@ def inference_dynamics(xt, ut):
 	"""
 	xtp = np.zeros(d)
 	for ell in range(d):
-		xtp[ell] = xt@ut[ell, 1:] + ut[ell, 0]  # including the bias
+		xtp[ell] = xt@ut[ell, 1:] + ut[ell, 0]
 
 	return xtp
 
@@ -127,8 +111,8 @@ def adjoint_dynamics(ltp, xt, ut):
 def backward_pass(xx, uu, llambdaT):
 	"""
 	  input: 
-				xx state trajectory: x[1],x[2],..., x[T]
-				uu input trajectory: u[0],u[1],..., u[T-1]
+				xx state trajectory: x[1],x[2],..., x[T]	i.e. output of each layer of the neural network
+				uu input trajectory: u[0],u[1],..., u[T-1]	i.e. weights of the neural network
 				llambdaT terminal condition
 	  output: 
 				llambda costate trajectory
@@ -148,10 +132,10 @@ def backward_pass(xx, uu, llambdaT):
 def BCEwithLogits(z, y_true):
 	if z >= 0:
 		bce = z - y_true*z + np.log(1 + np.exp(-z))
-		bce_d = 1 / (1 + np.exp(-z)) - y_true	# Derivative version that not cause overflow for z >= 0
+		bce_d = 1 / (1 + np.exp(-z)) - y_true			# Derivative version that not cause overflow for z >= 0
 	else:
 		bce = -y_true*z + np.log(1 + np.exp(z))
-		bce_d = np.exp(z) / (1 + np.exp(z)) - y_true # Derivative version that not cause overflow for z < 0
+		bce_d = np.exp(z) / (1 + np.exp(z)) - y_true	# Derivative version that not cause overflow for z < 0
 	return bce, bce_d
 
 ###############################################################################
@@ -173,12 +157,13 @@ np.random.shuffle(idx)
 train_D = np.array([train_D[i] for i in idx])
 train_y = np.array([train_y[i] for i in idx])
 
-# Without sampling: the probability distribution of chosen_class is 1/10
+""" Without sampling: the probability distribution of chosen_class is 1/10 """
 # n = n_samples//NN # Number of samples per node
 # data_point = np.array([train_D[n*i: n*i+n] for i in range(NN)])
 # label_point = np.array([train_y[n*i: n*i+n] for i in range(NN)])
+""" ---------------------------------------------------------------------- """
 
-# With pos/neg sampling: the proability distribution of chosen_class is 1/2
+""" With pos/neg sampling: the proability distribution of chosen_class is 1/2 """
 pos_idx = np.where(train_y == 1)[0][:n_samples//2]
 neg_idx = np.where(train_y == 0)[0][:n_samples-n_samples//2]
 
@@ -189,6 +174,7 @@ indices = indices.reshape((NN, n))
 
 data_point = train_D[indices]
 label_point = train_y[indices]
+""" ------------------------------------------------------------------------ """
 
 print(f"Training label points:\n{label_point}\n")
 
@@ -200,7 +186,7 @@ J = np.zeros((MAXITERS, NN))  # Cost
 
 #  U_t : U_0 Initial Weights / Initial Input Trajectory initialized randomly
 UU = np.random.randn(MAXITERS+1, NN, T-1, d, d+1)
-Delta_u = np.zeros_like(UU)
+Delta_u = np.zeros_like(UU) # Weights update
 
 ZZ = np.zeros_like(UU)	# z_t: z_0 Initialized at 0
 
@@ -252,13 +238,13 @@ plt.ylabel(r"cost")
 plt.title(r"Evolution of the cost error: $\min \sum_{i=1}^N \sum_{k=1}^\mathcal{I} J(\phi(u;x_i^k);y_i^k)$")
 plt.grid()
 plt.show()
-fig.savefig('./Task1/imgs/Cost error.png')
+fig.savefig('./Task1/imgs/BCE/Cost error.png')
 
 # Plot single cost of each agent over time
 fig = plt.figure()
 plt.plot(np.arange(MAXITERS), J)
 plt.show()
-fig.savefig('./Task1/imgs/Cost error (single agents).png')
+fig.savefig('./Task1/imgs/BCE/Cost error (single agents).png')
 
 # Plot consenus weight for each agent
 w = 10
@@ -271,7 +257,7 @@ for layer in range(T-1):
 	ax.append(fig.add_subplot(rows, columns, layer+1))
 	ax[-1].set_title(f"weights layer: {layer+1}")
 	ax[-1].plot(np.arange(MAXITERS), UU[:-1, :, layer, 0, :10].reshape(MAXITERS,-1))
-fig.savefig('./Task1/imgs/Weights Convercenge.png')
+fig.savefig('./Task1/imgs/BCE/Weights Convercenge.png')
 plt.show()
 
 

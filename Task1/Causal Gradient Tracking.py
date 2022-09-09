@@ -251,13 +251,21 @@ plt.ylabel(r"cost")
 plt.title(r"Evolution of the cost error: $\min \sum_{i=1}^N \sum_{k=1}^\mathcal{I} J(\phi(u;x_i^k);y_i^k)$")
 plt.grid()
 plt.show()
-fig.savefig('./Task1/imgs/Cost error.png')
+fig.savefig('./Task1/imgs/MSE/Cost error.png')
 
 # Plot single cost of each agent over time
 fig = plt.figure()
 plt.plot(np.arange(MAXITERS), J)
+plt.title(r"Evolution of the cost error (single agents)")
 plt.show()
-fig.savefig('./Task1/imgs/Cost error (single agents).png')
+fig.savefig('./Task1/imgs/MSE/Cost error (single agents).png')
+
+# Plot the gradient onf one agent over time for each layer
+fig = plt.figure()
+plt.plot(np.arange(MAXITERS), np.sum(np.sum(Delta_u, axis=-1), axis=-1)[:-1, 0, :])
+plt.title(r"Evolution of the the gradient of one agent")
+plt.show()
+fig.savefig('./Task1/imgs/MSE/Evolution of the gradient of one agent.png')
 
 # Plot consenus weight for each agent
 w = 10

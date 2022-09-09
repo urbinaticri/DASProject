@@ -230,6 +230,8 @@ for tt in range(MAXITERS):  # For each iteration
 	if (tt % 1) == 0:
 		print(f"Iteration {tt:3d} - loss: {np.sum(J[tt]):4.3f}", end="\n")
 
+print(np.sum(np.sum(Delta_u, axis=-1), axis=-1)[:-1, 0, :])
+
 # Plot evolution of cost function
 fig = plt.figure()
 plt.semilogy(np.arange(MAXITERS), np.sum(J, axis=1), linestyle='-', linewidth=2)
@@ -243,8 +245,16 @@ fig.savefig('./Task1/imgs/BCE/Cost error.png')
 # Plot single cost of each agent over time
 fig = plt.figure()
 plt.plot(np.arange(MAXITERS), J)
+plt.title(r"Evolution of the cost error (single agents)")
 plt.show()
 fig.savefig('./Task1/imgs/BCE/Cost error (single agents).png')
+
+# Plot the gradient onf one agent over time for each layer
+fig = plt.figure()
+plt.plot(np.arange(MAXITERS), np.sum(np.sum(Delta_u, axis=-1), axis=-1)[:-1, 0, :])
+plt.title(r"Evolution of the the gradient of one agent")
+plt.show()
+fig.savefig('./Task1/imgs/BCE/Evolution of the gradient of one agent.png')
 
 # Plot consenus weight for each agent
 w = 10

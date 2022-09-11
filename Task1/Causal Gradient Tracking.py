@@ -260,9 +260,12 @@ plt.title(r"Evolution of the cost error (single agents)")
 plt.show()
 fig.savefig('./Task1/imgs/MSE/Cost error (single agents).png')
 
-# Plot the gradient onf one agent over time for each layer
+# Plot the gradient of one agent over time for each layer
 fig = plt.figure()
-plt.plot(np.arange(MAXITERS), np.sum(np.sum(Delta_u, axis=-1), axis=-1)[:-1, 0, :])
+lines = plt.plot(np.arange(MAXITERS), np.sum(np.mean(Delta_u, axis=-1), axis=-1)[:-1, 0, :])
+plt.yscale("symlog", linthreshy=20)
+legend = [f'layer{i+1}' for i in range(T-1)]
+plt.legend(iter(lines), legend)
 plt.title(r"Evolution of the the gradient of one agent")
 plt.show()
 fig.savefig('./Task1/imgs/MSE/Evolution of the gradient of one agent.png')
@@ -278,7 +281,7 @@ for layer in range(T-1):
 	ax.append(fig.add_subplot(rows, columns, layer+1))
 	ax[-1].set_title(f"weights layer: {layer+1}")
 	ax[-1].plot(np.arange(MAXITERS), UU[:-1, :, layer, 0, :10].reshape(MAXITERS,-1))
-fig.savefig('./Task1/imgs/Weights Convercenge.png')
+fig.savefig('./Task1/imgs/MSE/Weights Convercenge.png')
 plt.show()
 
 
